@@ -30,8 +30,8 @@ func TestCurrentReadsVersionFile(t *testing.T) {
 		t.Fatalf("Chdir() error = %v", err)
 	}
 
-	if got := Current(); got != "0.0.1" {
-		t.Fatalf("Current() = %q, want %q", got, "0.0.1")
+	if got := Current(); got != "0.0.1-rc" {
+		t.Fatalf("Current() = %q, want %q", got, "0.0.1-rc")
 	}
 }
 

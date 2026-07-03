@@ -1,6 +1,7 @@
 package version
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,13 +16,13 @@ func Current() string {
 
 	value, err := findVersionFile()
 	if err != nil {
-		return "dev"
+		return fmt.Sprintf("dev (%v)", err)
 	}
 	if value == "" {
 		return "dev"
 	}
 
-	return value
+	return value + "-rc"
 }
 
 func findVersionFile() (string, error) {
