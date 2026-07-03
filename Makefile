@@ -9,4 +9,4 @@ build-windows:
 	GOOS=windows GOARCH=amd64 go build -o dist/ch.exe ./cmd/ch
 
 fmt:
-	gofmt -w cmd/ch/main.go internal/cli/*.go internal/config/*.go internal/logging/*.go internal/safety/*.go
+	gofmt -w cmd/ch/main.go internal/cli/*.go internal/config/*.go internal/logging/*.go internal/safety/*.go internal/version/*.go

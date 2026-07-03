@@ -1,3 +1,9 @@
+# sensitive files
+*.env
+
+# ignored files
+*.novcs*
+
 # Binaries
 /dist/
 /bin/

@@ -3,7 +3,7 @@
 This site will host build, install, and usage guidance for clip-history.
 
 ## Getting started
-- Build locally with the script in [scripts/build-local.sh](../scripts/build-local.sh).
+- Build locally with the script in [scripts/local-build.sh](../scripts/local-build.sh).
 - Run the CLI with `go run ./cmd/ch --help`.
 
 ## Installation
@@ -13,3 +13,8 @@ This site will host build, install, and usage guidance for clip-history.
 ## Usage
 - `ch config` shows configuration details.
 - `ch status` shows the current history directory.
+- `ch version` shows the current target release version.
+
+## Releases
+- Track the next release in [VERSION](../VERSION).
+- Publish with [scripts/create-release.sh](../scripts/create-release.sh).

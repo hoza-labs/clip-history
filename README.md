@@ -14,12 +14,14 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 - Follow the plan in [PLAN.md](PLAN.md).
 - Track shipped work in [CHANGELOG.md](CHANGELOG.md).
 - Keep agent-facing instructions current in [AGENTS.md](AGENTS.md) and [SKILLS.md](SKILLS.md).
+- Track the current target release in [VERSION](VERSION) and follow [docs/release.md](docs/release.md) when publishing.
 
 ## Local development
 
 1. Install Go 1.22+.
 2. Run tests: `go test ./...`
 3. Build the binary: `go build ./cmd/ch`
+4. Check the current target release: `go run ./cmd/ch version`
 
 ## Structure
 
@@ -28,4 +30,5 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 - internal/config: home-directory config handling.
 - internal/logging: file-based logging.
 - internal/safety: sensitivity filtering.
+- internal/version: version resolution for development and release builds.
 - docs: user documentation for GitHub Pages.

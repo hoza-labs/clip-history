@@ -4,6 +4,7 @@
 
 - `ch config` shows the active configuration location and directories.
 - `ch status` shows the clipboard history directory.
+- `ch version` shows the current target release version.
 - `ch --help` shows the root help text.
 
 ## Configuration

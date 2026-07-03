@@ -9,6 +9,17 @@ import (
 )
 
 func Execute() error {
+	if len(os.Args) < 2 {
+		return printRootHelp()
+	}
+
+	switch os.Args[1] {
+	case "help", "--help", "-h":
+		return printRootHelp()
+	case "version":
+		return runVersionCommand()
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -22,13 +33,7 @@ func Execute() error {
 
 	logger.Info("clip-history started")
 
-	if len(os.Args) < 2 {
-		return printRootHelp(logger)
-	}
-
 	switch os.Args[1] {
-	case "help", "--help", "-h":
-		return printRootHelp(logger)
 	case "config":
 		return runConfigCommand(logger, cfg)
 	case "status":
@@ -38,8 +43,7 @@ func Execute() error {
 	}
 }
 
-func printRootHelp(logger logging.Logger) error {
-	logger.Info("displaying root help")
+func printRootHelp() error {
 	fmt.Println("clip-history (ch)")
 	fmt.Println("")
 	fmt.Println("Usage:")
@@ -48,5 +52,6 @@ func printRootHelp(logger logging.Logger) error {
 	fmt.Println("Commands:")
 	fmt.Println("  config      Show or initialize configuration")
 	fmt.Println("  status      Show current clipboard history status")
+	fmt.Println("  version     Show the current target release version")
 	return nil
 }
