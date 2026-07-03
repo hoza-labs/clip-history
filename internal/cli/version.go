@@ -6,7 +6,9 @@ import (
 	"github.com/hoza-labs/clip-history/internal/version"
 )
 
+var currentVersion = version.Current
+
 func runVersionCommand() error {
-	fmt.Println(version.Current())
+	fmt.Println(currentVersion())
 	return nil
 }
