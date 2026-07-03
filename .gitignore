@@ -1,0 +1,15 @@
+# Binaries
+/dist/
+/bin/
+*.exe
+*.dll
+
+# Test outputs
+*.test
+
+# Local config and logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
