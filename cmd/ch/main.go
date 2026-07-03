@@ -2,14 +2,19 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/hoza-labs/clip-history/internal/cli"
 )
 
 func main() {
-	if err := cli.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
+	run(cli.Execute, os.Stderr, os.Exit)
+}
+
+func run(execute func() error, stderr io.Writer, exit func(int)) {
+	if err := execute(); err != nil {
+		fmt.Fprintln(stderr, err)
+		exit(1)
 	}
 }
