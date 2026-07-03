@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// released version will permanently inject a value here, via -ldflags; cf create-release.sh
 var buildVersion string
 
 func Current() string {
