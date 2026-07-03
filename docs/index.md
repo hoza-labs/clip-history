@@ -12,7 +12,9 @@ This site will host build, install, and usage guidance for clip-history.
 
 ## Usage
 - `ch config` shows configuration details.
-- `ch status` shows the current history directory.
+- `ch start` starts background clipboard monitoring.
+- `ch stop` stops background clipboard monitoring.
+- `ch status` shows the current history directory and whether monitoring is active.
 - `ch version` shows the current target release version.
 
 ## Releases

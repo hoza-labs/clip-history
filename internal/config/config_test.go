@@ -27,8 +27,14 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	if _, err := os.Stat(cfg.LogDir); err != nil {
 		t.Fatalf("expected log directory to exist: %v", err)
 	}
+	if _, err := os.Stat(cfg.RuntimeDir); err != nil {
+		t.Fatalf("expected runtime directory to exist: %v", err)
+	}
 
 	if filepath.Base(cfg.Path) != "config.json" {
 		t.Fatalf("unexpected config file name: %s", filepath.Base(cfg.Path))
+	}
+	if filepath.Base(cfg.MonitorStatePath) != "monitor.json" {
+		t.Fatalf("unexpected monitor state file name: %s", filepath.Base(cfg.MonitorStatePath))
 	}
 }

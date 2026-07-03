@@ -8,3 +8,5 @@
 - Added initial BDD-style unit tests for the public module behavior.
 - Added `ch version` and a single source of truth for the target semver release.
 - Added a documented GitHub release workflow driven by `scripts/create-release.sh`.
+- Added `ch start`, `ch stop`, and `ch status` for background clipboard monitoring.
+- Added a Windows clipboard listener process that logs clipboard copy events and maintains monitor state.

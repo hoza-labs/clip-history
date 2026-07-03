@@ -36,6 +36,12 @@ func Execute() error {
 	switch os.Args[1] {
 	case "config":
 		return runConfigCommand(logger, cfg)
+	case "monitor":
+		return runMonitorCommand(logger, cfg)
+	case "start":
+		return runStartCommand(logger, cfg)
+	case "stop":
+		return runStopCommand(logger, cfg)
 	case "status":
 		return runStatusCommand(logger, cfg)
 	default:
@@ -51,7 +57,9 @@ func printRootHelp() error {
 	fmt.Println("")
 	fmt.Println("Commands:")
 	fmt.Println("  config      Show or initialize configuration")
-	fmt.Println("  status      Show current clipboard history status")
+	fmt.Println("  start       Start clipboard monitoring in the background")
+	fmt.Println("  stop        Stop clipboard monitoring")
+	fmt.Println("  status      Show whether clipboard monitoring is running")
 	fmt.Println("  version     Show the current target release version")
 	return nil
 }

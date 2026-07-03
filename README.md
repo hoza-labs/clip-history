@@ -23,6 +23,7 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 2. Run tests: `go test ./...`
 3. Build the binary: `go build ./cmd/ch`
 4. Check the current target release: `go run ./cmd/ch version`
+5. Start clipboard monitoring: `go run ./cmd/ch start`
 
 ## Structure
 
@@ -30,6 +31,7 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 - internal/cli: command tree and subcommands.
 - internal/config: home-directory config handling.
 - internal/logging: file-based logging.
+- internal/monitor: background monitor state and Windows clipboard listener.
 - internal/safety: sensitivity filtering.
 - internal/version: version resolution for development and release builds.
 - docs: user documentation for GitHub Pages.
