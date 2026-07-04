@@ -65,10 +65,10 @@ var (
 	procTranslateMessage              = user32.NewProc("TranslateMessage")
 	procGetModuleHandleW              = kernel32.NewProc("GetModuleHandleW")
 	monitorWindowProc                 = syscall.NewCallback(wndProc)
-	monitorInstances                  sync.Map
+	monitorWorkers                    sync.Map
 )
 
-type runner struct {
+type worker struct {
 	hwnd      uintptr
 	logger    logging.Logger
 	statePath string
@@ -76,7 +76,7 @@ type runner struct {
 	startedAt time.Time
 }
 
-func Run(logger logging.Logger, statePath, stopPath string) error {
+func RunWorker(logger logging.Logger, statePath, stopPath string) error {
 	if err := RemoveFile(stopPath); err != nil {
 		return fmt.Errorf("clear stop signal: %w", err)
 	}
@@ -121,15 +121,15 @@ func Run(logger logging.Logger, statePath, stopPath string) error {
 	}
 
 	now := time.Now().UTC()
-	r := &runner{
+	w := &worker{
 		hwnd:      hwnd,
 		logger:    logger,
 		statePath: statePath,
 		stopPath:  stopPath,
 		startedAt: now,
 	}
-	monitorInstances.Store(hwnd, r)
-	defer monitorInstances.Delete(hwnd)
+	monitorWorkers.Store(hwnd, w)
+	defer monitorWorkers.Delete(hwnd)
 	defer func() {
 		_ = RemoveFile(statePath)
 		_ = RemoveFile(stopPath)
@@ -152,7 +152,7 @@ func Run(logger logging.Logger, statePath, stopPath string) error {
 
 	done := make(chan struct{})
 	defer close(done)
-	go r.heartbeat(done)
+	go w.heartbeat(done)
 
 	logger.Info("clipboard monitor started")
 
@@ -172,7 +172,7 @@ func Run(logger logging.Logger, statePath, stopPath string) error {
 	}
 }
 
-func (r *runner) heartbeat(done <-chan struct{}) {
+func (w *worker) heartbeat(done <-chan struct{}) {
 	ticker := time.NewTicker(DefaultHeartbeatInterval)
 	defer ticker.Stop()
 
@@ -181,15 +181,15 @@ func (r *runner) heartbeat(done <-chan struct{}) {
 		case <-done:
 			return
 		case <-ticker.C:
-			if _, err := os.Stat(r.stopPath); err == nil {
-				procPostMessageW.Call(r.hwnd, wmClose, 0, 0)
+			if _, err := os.Stat(w.stopPath); err == nil {
+				procPostMessageW.Call(w.hwnd, wmClose, 0, 0)
 				return
 			}
 
 			now := time.Now().UTC()
-			_ = SaveState(r.statePath, State{
+			_ = SaveState(w.statePath, State{
 				PID:         os.Getpid(),
-				StartedAt:   r.startedAt,
+				StartedAt:   w.startedAt,
 				HeartbeatAt: now,
 			})
 		}
@@ -197,19 +197,19 @@ func (r *runner) heartbeat(done <-chan struct{}) {
 }
 
 func wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
-	value, _ := monitorInstances.Load(hwnd)
-	r, _ := value.(*runner)
+	value, _ := monitorWorkers.Load(hwnd)
+	w, _ := value.(*worker)
 
 	switch msg {
 	case wmClipboardUpdate:
-		if r != nil {
+		if w != nil {
 			now := time.Now().UTC()
-			_ = SaveState(r.statePath, State{
+			_ = SaveState(w.statePath, State{
 				PID:         os.Getpid(),
-				StartedAt:   r.startedAt,
+				StartedAt:   w.startedAt,
 				HeartbeatAt: now,
 			})
-			r.logger.Info("clipboard update detected")
+			w.logger.Info("clipboard update detected")
 		}
 		return 0
 	case wmClose:

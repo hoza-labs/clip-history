@@ -23,9 +23,9 @@ func (stubLogger) Close() error { return nil }
 
 func TestRunStartCommandPrintsStarted(t *testing.T) {
 	cfg := config.Default(t.TempDir())
-	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
-		return monitor.NewService(monitor.ServiceConfig{
+	oldFactory := newMonitorController
+	newMonitorController = func(config.Config) (monitor.Controller, error) {
+		return monitor.NewController(monitor.ControllerConfig{
 			StatePath: cfg.MonitorStatePath,
 			StopPath:  cfg.MonitorStopPath,
 			StartProcess: func() error {
@@ -40,7 +40,7 @@ func TestRunStartCommandPrintsStarted(t *testing.T) {
 			Sleep:       func(time.Duration) {},
 		})
 	}
-	t.Cleanup(func() { newMonitorService = oldFactory })
+	t.Cleanup(func() { newMonitorController = oldFactory })
 
 	output := captureStdout(t, func() error {
 		return runStartCommand(stubLogger{}, cfg)
@@ -61,10 +61,10 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 		t.Fatalf("SaveState() error = %v", err)
 	}
 
-	oldFactory := newMonitorService
+	oldFactory := newMonitorController
 	now := time.Unix(10, 0)
-	newMonitorService = func(config.Config) (monitor.Service, error) {
-		return monitor.NewService(monitor.ServiceConfig{
+	newMonitorController = func(config.Config) (monitor.Controller, error) {
+		return monitor.NewController(monitor.ControllerConfig{
 			StatePath:    cfg.MonitorStatePath,
 			StopPath:     cfg.MonitorStopPath,
 			StartProcess: func() error { return nil },
@@ -73,7 +73,7 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 			Sleep:        func(d time.Duration) { now = now.Add(d) },
 		})
 	}
-	t.Cleanup(func() { newMonitorService = oldFactory })
+	t.Cleanup(func() { newMonitorController = oldFactory })
 
 	output := captureStdout(t, func() error {
 		return runStopCommand(stubLogger{}, cfg)
@@ -86,8 +86,8 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 
 func TestRunStatusCommandPrintsRunning(t *testing.T) {
 	cfg := config.Default(t.TempDir())
-	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
+	oldFactory := newMonitorController
+	newMonitorController = func(config.Config) (monitor.Controller, error) {
 		if err := monitor.SaveState(cfg.MonitorStatePath, monitor.State{
 			PID:         99,
 			StartedAt:   time.Unix(0, 0),
@@ -95,7 +95,7 @@ func TestRunStatusCommandPrintsRunning(t *testing.T) {
 		}); err != nil {
 			t.Fatalf("SaveState() error = %v", err)
 		}
-		return monitor.NewService(monitor.ServiceConfig{
+		return monitor.NewController(monitor.ControllerConfig{
 			StatePath:    cfg.MonitorStatePath,
 			StopPath:     cfg.MonitorStopPath,
 			StartProcess: func() error { return nil },
@@ -104,7 +104,7 @@ func TestRunStatusCommandPrintsRunning(t *testing.T) {
 			Sleep:        func(time.Duration) {},
 		})
 	}
-	t.Cleanup(func() { newMonitorService = oldFactory })
+	t.Cleanup(func() { newMonitorController = oldFactory })
 
 	output := captureStdout(t, func() error {
 		return runStatusCommand(stubLogger{}, cfg)
@@ -117,30 +117,30 @@ func TestRunStatusCommandPrintsRunning(t *testing.T) {
 
 func TestRunMonitorCommandDelegatesToClipboardRunner(t *testing.T) {
 	cfg := config.Default(t.TempDir())
-	oldRunner := runClipboardMonitor
+	oldRunner := runMonitorWorker
 	called := false
-	runClipboardMonitor = func(logger logging.Logger, gotCfg config.Config) error {
+	runMonitorWorker = func(logger logging.Logger, gotCfg config.Config) error {
 		called = true
 		if gotCfg.MonitorStatePath != cfg.MonitorStatePath {
 			t.Fatalf("MonitorStatePath = %q, want %q", gotCfg.MonitorStatePath, cfg.MonitorStatePath)
 		}
 		return nil
 	}
-	t.Cleanup(func() { runClipboardMonitor = oldRunner })
+	t.Cleanup(func() { runMonitorWorker = oldRunner })
 
 	if err := runMonitorCommand(stubLogger{}, cfg); err != nil {
 		t.Fatalf("runMonitorCommand() error = %v", err)
 	}
 	if !called {
-		t.Fatal("expected runClipboardMonitor to be called")
+		t.Fatal("expected runMonitorWorker to be called")
 	}
 }
 
 func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
-	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
-		return monitor.NewService(monitor.ServiceConfig{
+	oldFactory := newMonitorController
+	newMonitorController = func(config.Config) (monitor.Controller, error) {
+		return monitor.NewController(monitor.ControllerConfig{
 			StatePath:    cfg.MonitorStatePath,
 			StopPath:     cfg.MonitorStopPath,
 			StartProcess: func() error { return errors.New("boom") },
@@ -149,7 +149,7 @@ func TestRunStartCommandReturnsServiceError(t *testing.T) {
 			Sleep:        func(time.Duration) {},
 		})
 	}
-	t.Cleanup(func() { newMonitorService = oldFactory })
+	t.Cleanup(func() { newMonitorController = oldFactory })
 
 	err := runStartCommand(stubLogger{}, cfg)
 	if err == nil || err.Error() != "boom" {
@@ -157,13 +157,13 @@ func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	}
 }
 
-func TestRunStartCommandReturnsConstructorError(t *testing.T) {
+func TestRunStartCommandReturnsControllerConstructorError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
-	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
-		return monitor.Service{}, errors.New("bad constructor")
+	oldFactory := newMonitorController
+	newMonitorController = func(config.Config) (monitor.Controller, error) {
+		return monitor.Controller{}, errors.New("bad constructor")
 	}
-	t.Cleanup(func() { newMonitorService = oldFactory })
+	t.Cleanup(func() { newMonitorController = oldFactory })
 
 	err := runStartCommand(stubLogger{}, cfg)
 	if err == nil || err.Error() != "bad constructor" {

@@ -9,28 +9,28 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
-var newMonitorService = func(cfg config.Config) (monitor.Service, error) {
-	service, err := monitor.NewService(monitor.ServiceConfig{
+var newMonitorController = func(cfg config.Config) (monitor.Controller, error) {
+	controller, err := monitor.NewController(monitor.ControllerConfig{
 		StatePath:    cfg.MonitorStatePath,
 		StopPath:     cfg.MonitorStopPath,
 		StartProcess: startMonitorProcess,
 		KillProcess:  killMonitorProcess,
 	})
-	return service, err
+	return controller, err
 }
 
-var runClipboardMonitor = func(logger logging.Logger, cfg config.Config) error {
-	return monitor.Run(logger, cfg.MonitorStatePath, cfg.MonitorStopPath)
+var runMonitorWorker = func(logger logging.Logger, cfg config.Config) error {
+	return monitor.RunWorker(logger, cfg.MonitorStatePath, cfg.MonitorStopPath)
 }
 
 func runStartCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running start command")
 
-	service, err := newMonitorService(cfg)
+	controller, err := newMonitorController(cfg)
 	if err != nil {
 		return err
 	}
-	started, err := service.Start()
+	started, err := controller.Start()
 	if err != nil {
 		return err
 	}
@@ -46,11 +46,11 @@ func runStartCommand(logger logging.Logger, cfg config.Config) error {
 func runStopCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running stop command")
 
-	service, err := newMonitorService(cfg)
+	controller, err := newMonitorController(cfg)
 	if err != nil {
 		return err
 	}
-	stopped, err := service.Stop()
+	stopped, err := controller.Stop()
 	if err != nil {
 		return err
 	}
@@ -66,11 +66,11 @@ func runStopCommand(logger logging.Logger, cfg config.Config) error {
 func runStatusCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running status command")
 
-	service, err := newMonitorService(cfg)
+	controller, err := newMonitorController(cfg)
 	if err != nil {
 		return err
 	}
-	status, err := service.Status()
+	status, err := controller.Status()
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,9 @@ func runStatusCommand(logger logging.Logger, cfg config.Config) error {
 	return nil
 }
 
+// runMonitorCommand is the hidden worker entrypoint used by `ch start` to spawn
+// the long-running clipboard monitoring child process.
 func runMonitorCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running monitor command")
-	return runClipboardMonitor(logger, cfg)
+	return runMonitorWorker(logger, cfg)
 }

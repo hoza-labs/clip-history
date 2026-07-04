@@ -17,6 +17,8 @@ This site will host build, install, and usage guidance for clip-history.
 - `ch status` shows the current history directory and whether monitoring is active.
 - `ch version` shows the current target release version.
 
+The `monitor` subcommand is a hidden internal worker command used by `start`.
+
 ## Releases
 - Track the next release in [VERSION](../VERSION).
 - Publish with [scripts/create-release.sh](../scripts/create-release.sh).

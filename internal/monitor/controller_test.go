@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-func TestServiceStartWaitsForHealthyState(t *testing.T) {
+func TestControllerStartWaitsForHealthyState(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(dir, "monitor.json")
 	stopPath := filepath.Join(dir, "monitor.stop")
-	controller, err := NewService(ServiceConfig{
+	controller, err := NewController(ControllerConfig{
 		StatePath: statePath,
 		StopPath:  stopPath,
 		StartProcess: func() error {
@@ -29,7 +29,7 @@ func TestServiceStartWaitsForHealthyState(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
+		t.Fatalf("NewController() error = %v", err)
 	}
 
 	started, err := controller.Start()
@@ -41,14 +41,14 @@ func TestServiceStartWaitsForHealthyState(t *testing.T) {
 	}
 }
 
-func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
+func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(dir, "monitor.json")
 	stopPath := filepath.Join(dir, "monitor.stop")
 	killedPID := 0
 
-	controller, err := NewService(ServiceConfig{
+	controller, err := NewController(ControllerConfig{
 		StatePath:    statePath,
 		StopPath:     stopPath,
 		StartProcess: func() error { return nil },
@@ -62,7 +62,7 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 		},
 	})
 	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
+		t.Fatalf("NewController() error = %v", err)
 	}
 	if err := SaveState(statePath, State{
 		PID:         42,
@@ -84,10 +84,10 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 	}
 }
 
-func TestServiceStatusReportsStaleMonitor(t *testing.T) {
+func TestControllerStatusReportsStaleWorker(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 10, 0, time.UTC)
-	controller, err := NewService(ServiceConfig{
+	controller, err := NewController(ControllerConfig{
 		StatePath:    filepath.Join(dir, "monitor.json"),
 		StopPath:     filepath.Join(dir, "monitor.stop"),
 		StartProcess: func() error { return nil },
@@ -95,7 +95,7 @@ func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 		Now:          func() time.Time { return now },
 	})
 	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
+		t.Fatalf("NewController() error = %v", err)
 	}
 	if err := SaveState(filepath.Join(dir, "monitor.json"), State{
 		PID:         42,
@@ -110,15 +110,15 @@ func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 		t.Fatalf("Status() error = %v", err)
 	}
 	if status.Running {
-		t.Fatal("expected stale monitor to report not running")
+		t.Fatal("expected stale worker to report not running")
 	}
 	if !status.Stale {
-		t.Fatal("expected stale monitor to be marked stale")
+		t.Fatal("expected stale worker to be marked stale")
 	}
 }
 
-func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
-	controller, err := NewService(ServiceConfig{
+func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
+	controller, err := NewController(ControllerConfig{
 		StatePath:    "monitor.json",
 		StopPath:     "monitor.stop",
 		StartProcess: func() error { return errors.New("spawn failed") },
@@ -127,7 +127,7 @@ func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 		Sleep:        func(time.Duration) {},
 	})
 	if err != nil {
-		t.Fatalf("NewService() error = %v", err)
+		t.Fatalf("NewController() error = %v", err)
 	}
 
 	started, err := controller.Start()
@@ -139,9 +139,9 @@ func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 	}
 }
 
-func TestNewServiceRequiresAllMinimalDependencies(t *testing.T) {
-	_, err := NewService(ServiceConfig{})
+func TestNewControllerRequiresAllMinimalDependencies(t *testing.T) {
+	_, err := NewController(ControllerConfig{})
 	if err == nil {
-		t.Fatal("expected NewService() to fail")
+		t.Fatal("expected NewController() to fail")
 	}
 }

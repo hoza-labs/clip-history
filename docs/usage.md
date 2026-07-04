@@ -9,6 +9,8 @@
 - `ch version` shows the current target release version.
 - `ch --help` shows the root help text.
 
+`ch monitor` is an internal worker command used by `ch start` and is intentionally omitted from normal help output.
+
 ## Configuration
 
 The application stores its config, logs, and monitor runtime state in a directory named `.clip-history` beneath the user's home directory.

@@ -14,3 +14,4 @@
 - Refactored monitor control behind an exported interface with a private implementation that stores normalized constructor config.
 - Consolidated shared repository rules into `CONVENTIONS.md` and reserved `AGENTS.md` for agent-specific instructions.
 - Updated the Go API design convention to prefer accepting interfaces and returning structs, and refactored monitor service accordingly.
+- Renamed monitor lifecycle coordination to `Controller` and the long-running child process implementation to `Worker`.

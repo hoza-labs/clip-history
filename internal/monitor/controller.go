@@ -13,7 +13,7 @@ type Status struct {
 	Stale   bool
 }
 
-type ServiceConfig struct {
+type ControllerConfig struct {
 	StatePath        string
 	StopPath         string
 	StartProcess     func() error
@@ -26,22 +26,22 @@ type ServiceConfig struct {
 	Sleep            func(time.Duration)
 }
 
-type Service struct {
-	cfg ServiceConfig
+type Controller struct {
+	cfg ControllerConfig
 }
 
-func NewService(cfg ServiceConfig) (Service, error) {
+func NewController(cfg ControllerConfig) (Controller, error) {
 	if cfg.StatePath == "" {
-		return Service{}, errors.New("state path is required")
+		return Controller{}, errors.New("state path is required")
 	}
 	if cfg.StopPath == "" {
-		return Service{}, errors.New("stop path is required")
+		return Controller{}, errors.New("stop path is required")
 	}
 	if cfg.StartProcess == nil {
-		return Service{}, errors.New("start process function is required")
+		return Controller{}, errors.New("start process function is required")
 	}
 	if cfg.KillProcess == nil {
-		return Service{}, errors.New("kill process function is required")
+		return Controller{}, errors.New("kill process function is required")
 	}
 	if cfg.HeartbeatTimeout == 0 {
 		cfg.HeartbeatTimeout = DefaultHeartbeatTimeout
@@ -62,12 +62,12 @@ func NewService(cfg ServiceConfig) (Service, error) {
 		cfg.Sleep = time.Sleep
 	}
 
-	return Service{cfg: cfg}, nil
+	return Controller{cfg: cfg}, nil
 }
 
-// Start returns true if the service was started; it returns false if it was already running
-// or could not be started due to error
-func (s Service) Start() (bool, error) {
+// Start returns true if monitoring was started; it returns false if it was already
+// running or could not be started due to error.
+func (s Controller) Start() (bool, error) {
 	status, err := s.Status()
 	if err != nil {
 		return false, err
@@ -103,7 +103,7 @@ func (s Service) Start() (bool, error) {
 	return false, errors.New("monitor did not become ready in time")
 }
 
-func (s Service) Stop() (bool, error) {
+func (s Controller) Stop() (bool, error) {
 	state, err := LoadState(s.cfg.StatePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -143,7 +143,7 @@ func (s Service) Stop() (bool, error) {
 	return true, nil
 }
 
-func (s Service) Status() (Status, error) {
+func (s Controller) Status() (Status, error) {
 	state, err := LoadState(s.cfg.StatePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
