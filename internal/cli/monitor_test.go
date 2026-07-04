@@ -24,7 +24,7 @@ func (stubLogger) Close() error { return nil }
 func TestRunStartCommandPrintsStarted(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
+	newMonitorService = func(config.Config) (monitor.Controller, error) {
 		return monitor.NewService(monitor.ServiceConfig{
 			StatePath: cfg.MonitorStatePath,
 			StopPath:  cfg.MonitorStopPath,
@@ -63,7 +63,7 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 
 	oldFactory := newMonitorService
 	now := time.Unix(10, 0)
-	newMonitorService = func(config.Config) (monitor.Service, error) {
+	newMonitorService = func(config.Config) (monitor.Controller, error) {
 		return monitor.NewService(monitor.ServiceConfig{
 			StatePath:    cfg.MonitorStatePath,
 			StopPath:     cfg.MonitorStopPath,
@@ -87,7 +87,7 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 func TestRunStatusCommandPrintsRunning(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
+	newMonitorService = func(config.Config) (monitor.Controller, error) {
 		if err := monitor.SaveState(cfg.MonitorStatePath, monitor.State{
 			PID:         99,
 			StartedAt:   time.Unix(0, 0),
@@ -139,7 +139,7 @@ func TestRunMonitorCommandDelegatesToClipboardRunner(t *testing.T) {
 func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
+	newMonitorService = func(config.Config) (monitor.Controller, error) {
 		return monitor.NewService(monitor.ServiceConfig{
 			StatePath:    cfg.MonitorStatePath,
 			StopPath:     cfg.MonitorStopPath,
@@ -160,8 +160,8 @@ func TestRunStartCommandReturnsServiceError(t *testing.T) {
 func TestRunStartCommandReturnsConstructorError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorService
-	newMonitorService = func(config.Config) (monitor.Service, error) {
-		return monitor.Service{}, errors.New("bad constructor")
+	newMonitorService = func(config.Config) (monitor.Controller, error) {
+		return nil, errors.New("bad constructor")
 	}
 	t.Cleanup(func() { newMonitorService = oldFactory })
 

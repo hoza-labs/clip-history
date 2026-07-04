@@ -12,7 +12,7 @@ func TestServiceStartWaitsForHealthyState(t *testing.T) {
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(dir, "monitor.json")
 	stopPath := filepath.Join(dir, "monitor.stop")
-	service, err := NewService(ServiceConfig{
+	controller, err := NewService(ServiceConfig{
 		StatePath: statePath,
 		StopPath:  stopPath,
 		StartProcess: func() error {
@@ -32,7 +32,7 @@ func TestServiceStartWaitsForHealthyState(t *testing.T) {
 		t.Fatalf("NewService() error = %v", err)
 	}
 
-	started, err := service.Start()
+	started, err := controller.Start()
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
@@ -48,7 +48,7 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 	stopPath := filepath.Join(dir, "monitor.stop")
 	killedPID := 0
 
-	service, err := NewService(ServiceConfig{
+	controller, err := NewService(ServiceConfig{
 		StatePath:    statePath,
 		StopPath:     stopPath,
 		StartProcess: func() error { return nil },
@@ -64,7 +64,7 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
-	if err := SaveState(service.StatePath, State{
+	if err := SaveState(statePath, State{
 		PID:         42,
 		StartedAt:   now,
 		HeartbeatAt: now,
@@ -72,7 +72,7 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 		t.Fatalf("SaveState() error = %v", err)
 	}
 
-	stopped, err := service.Stop()
+	stopped, err := controller.Stop()
 	if err != nil {
 		t.Fatalf("Stop() error = %v", err)
 	}
@@ -87,7 +87,7 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 10, 0, time.UTC)
-	service, err := NewService(ServiceConfig{
+	controller, err := NewService(ServiceConfig{
 		StatePath:    filepath.Join(dir, "monitor.json"),
 		StopPath:     filepath.Join(dir, "monitor.stop"),
 		StartProcess: func() error { return nil },
@@ -97,7 +97,7 @@ func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
-	if err := SaveState(service.StatePath, State{
+	if err := SaveState(filepath.Join(dir, "monitor.json"), State{
 		PID:         42,
 		StartedAt:   now.Add(-10 * time.Second),
 		HeartbeatAt: now.Add(-10 * time.Second),
@@ -105,7 +105,7 @@ func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 		t.Fatalf("SaveState() error = %v", err)
 	}
 
-	status, err := service.Status()
+	status, err := controller.Status()
 	if err != nil {
 		t.Fatalf("Status() error = %v", err)
 	}
@@ -118,7 +118,7 @@ func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 }
 
 func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
-	service, err := NewService(ServiceConfig{
+	controller, err := NewService(ServiceConfig{
 		StatePath:    "monitor.json",
 		StopPath:     "monitor.stop",
 		StartProcess: func() error { return errors.New("spawn failed") },
@@ -130,7 +130,7 @@ func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 		t.Fatalf("NewService() error = %v", err)
 	}
 
-	started, err := service.Start()
+	started, err := controller.Start()
 	if err == nil {
 		t.Fatal("expected Start() to fail")
 	}

@@ -11,3 +11,4 @@
 - Added `ch start`, `ch stop`, and `ch status` for background clipboard monitoring.
 - Added a Windows clipboard listener process that logs clipboard copy events and maintains monitor state.
 - Tightened constructor guidance and refactored monitor service creation to require all minimal dependencies at construction time.
+- Refactored monitor control behind an exported interface with a private implementation that stores normalized constructor config.

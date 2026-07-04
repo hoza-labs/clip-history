@@ -9,7 +9,7 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
-var newMonitorService = func(cfg config.Config) (monitor.Service, error) {
+var newMonitorService = func(cfg config.Config) (monitor.Controller, error) {
 	service, err := monitor.NewService(monitor.ServiceConfig{
 		StatePath:    cfg.MonitorStatePath,
 		StopPath:     cfg.MonitorStopPath,
