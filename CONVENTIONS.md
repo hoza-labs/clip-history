@@ -18,4 +18,5 @@ Shared coding and design rules for this repository live here. Keep this file as 
 - Constructors may also accept optional settings.
 - Constructors with more than about five arguments should take a single custom config/options object instead.
 - Favor avoiding duplication by storing a normalized copy of constructor config objects rather than repeating the same fields on constructed types.
-- Favor exporting an interface and keeping concrete implementation details private when that preserves flexibility for future changes.
+- Package methods and functions should prefer accepting interfaces and returning structs.
+- Exported structs should generally favor keeping fields private, exposing behavior through methods rather than public mutable fields.
