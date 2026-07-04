@@ -9,13 +9,14 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
-var newMonitorService = func(cfg config.Config) monitor.Service {
-	service := monitor.NewService(cfg.MonitorStatePath, cfg.MonitorStopPath)
-	service.StartProcess = func() error {
-		return startMonitorProcess()
-	}
-	service.KillProcess = killMonitorProcess
-	return service
+var newMonitorService = func(cfg config.Config) (monitor.Service, error) {
+	service, err := monitor.NewService(monitor.ServiceConfig{
+		StatePath:    cfg.MonitorStatePath,
+		StopPath:     cfg.MonitorStopPath,
+		StartProcess: startMonitorProcess,
+		KillProcess:  killMonitorProcess,
+	})
+	return service, err
 }
 
 var runClipboardMonitor = func(logger logging.Logger, cfg config.Config) error {
@@ -25,7 +26,11 @@ var runClipboardMonitor = func(logger logging.Logger, cfg config.Config) error {
 func runStartCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running start command")
 
-	started, err := newMonitorService(cfg).Start()
+	service, err := newMonitorService(cfg)
+	if err != nil {
+		return err
+	}
+	started, err := service.Start()
 	if err != nil {
 		return err
 	}
@@ -41,7 +46,11 @@ func runStartCommand(logger logging.Logger, cfg config.Config) error {
 func runStopCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running stop command")
 
-	stopped, err := newMonitorService(cfg).Stop()
+	service, err := newMonitorService(cfg)
+	if err != nil {
+		return err
+	}
+	stopped, err := service.Stop()
 	if err != nil {
 		return err
 	}
@@ -57,7 +66,11 @@ func runStopCommand(logger logging.Logger, cfg config.Config) error {
 func runStatusCommand(logger logging.Logger, cfg config.Config) error {
 	logger.Info("running status command")
 
-	status, err := newMonitorService(cfg).Status()
+	service, err := newMonitorService(cfg)
+	if err != nil {
+		return err
+	}
+	status, err := service.Status()
 	if err != nil {
 		return err
 	}

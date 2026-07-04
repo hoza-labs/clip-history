@@ -9,5 +9,5 @@ import (
 )
 
 func Run(logger logging.Logger, statePath, stopPath string) error {
-	return errors.New("clipboard monitoring is only supported on Windows")
+	return errors.New("cannot Run Monitor: clipboard monitoring is only supported on Windows")
 }

@@ -16,6 +16,7 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 - Keep agent-facing instructions current in [AGENTS.md](AGENTS.md) and [SKILLS.md](SKILLS.md).
 - Track the current target release in [VERSION](VERSION) and follow [docs/release.md](docs/release.md) when publishing.
 - Prefer independent unit tests with controlled dependencies; avoid accidental integration tests unless cross-package behavior is the thing being verified.
+- Constructors should take all required dependencies for a minimally functional object. Optional settings may also be accepted by the constructor, and constructors with more than about five arguments should take a custom config/options struct instead.
 
 ## Local development
 

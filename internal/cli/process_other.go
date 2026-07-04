@@ -5,7 +5,7 @@ package cli
 import "errors"
 
 func startMonitorProcess() error {
-	return errors.New("clipboard monitoring is only supported on Windows")
+	return errors.New("cannot startMonitorProcess: clipboard monitoring is only supported on Windows")
 }
 
 func killMonitorProcess(pid int) error {

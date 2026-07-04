@@ -13,30 +13,76 @@ type Status struct {
 	Stale   bool
 }
 
-type Service struct {
+type ServiceConfig struct {
 	StatePath        string
 	StopPath         string
+	StartProcess     func() error
+	KillProcess      func(int) error
 	HeartbeatTimeout time.Duration
 	StartTimeout     time.Duration
 	StopTimeout      time.Duration
 	PollInterval     time.Duration
 	Now              func() time.Time
 	Sleep            func(time.Duration)
-	StartProcess     func() error
-	KillProcess      func(int) error
 }
 
-func NewService(statePath, stopPath string) Service {
-	return Service{
-		StatePath:        statePath,
-		StopPath:         stopPath,
-		HeartbeatTimeout: DefaultHeartbeatTimeout,
-		StartTimeout:     DefaultStartTimeout,
-		StopTimeout:      DefaultStopTimeout,
-		PollInterval:     DefaultPollInterval,
-		Now:              time.Now,
-		Sleep:            time.Sleep,
+type Service struct {
+	StatePath        string
+	StopPath         string
+	StartProcess     func() error
+	KillProcess      func(int) error
+	HeartbeatTimeout time.Duration
+	StartTimeout     time.Duration
+	StopTimeout      time.Duration
+	PollInterval     time.Duration
+	Now              func() time.Time
+	Sleep            func(time.Duration)
+}
+
+func NewService(cfg ServiceConfig) (Service, error) {
+	if cfg.StatePath == "" {
+		return Service{}, errors.New("state path is required")
 	}
+	if cfg.StopPath == "" {
+		return Service{}, errors.New("stop path is required")
+	}
+	if cfg.StartProcess == nil {
+		return Service{}, errors.New("start process function is required")
+	}
+	if cfg.KillProcess == nil {
+		return Service{}, errors.New("kill process function is required")
+	}
+	if cfg.HeartbeatTimeout == 0 {
+		cfg.HeartbeatTimeout = DefaultHeartbeatTimeout
+	}
+	if cfg.StartTimeout == 0 {
+		cfg.StartTimeout = DefaultStartTimeout
+	}
+	if cfg.StopTimeout == 0 {
+		cfg.StopTimeout = DefaultStopTimeout
+	}
+	if cfg.PollInterval == 0 {
+		cfg.PollInterval = DefaultPollInterval
+	}
+	if cfg.Now == nil {
+		cfg.Now = time.Now
+	}
+	if cfg.Sleep == nil {
+		cfg.Sleep = time.Sleep
+	}
+
+	return Service{
+		StatePath:        cfg.StatePath,
+		StopPath:         cfg.StopPath,
+		StartProcess:     cfg.StartProcess,
+		KillProcess:      cfg.KillProcess,
+		HeartbeatTimeout: cfg.HeartbeatTimeout,
+		StartTimeout:     cfg.StartTimeout,
+		StopTimeout:      cfg.StopTimeout,
+		PollInterval:     cfg.PollInterval,
+		Now:              cfg.Now,
+		Sleep:            cfg.Sleep,
+	}, nil
 }
 
 // Start returns true if the service was started; it returns false if it was already running
@@ -57,9 +103,6 @@ func (s Service) Start() (bool, error) {
 		return false, fmt.Errorf("remove stale stop signal: %w", err)
 	}
 
-	if s.StartProcess == nil {
-		return false, errors.New("start process function is required")
-	}
 	if err := s.StartProcess(); err != nil {
 		return false, err
 	}
@@ -104,7 +147,7 @@ func (s Service) Stop() (bool, error) {
 		s.Sleep(s.PollInterval)
 	}
 
-	if s.KillProcess != nil && state.PID > 0 {
+	if state.PID > 0 {
 		if err := s.KillProcess(state.PID); err != nil {
 			return true, err
 		}

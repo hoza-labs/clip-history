@@ -9,22 +9,27 @@ import (
 
 func TestServiceStartWaitsForHealthyState(t *testing.T) {
 	dir := t.TempDir()
-	service := NewService(
-		filepath.Join(dir, "monitor.json"),
-		filepath.Join(dir, "monitor.stop"),
-	)
-
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
-	service.Now = func() time.Time { return now }
-	service.Sleep = func(d time.Duration) {
-		now = now.Add(d)
-	}
-	service.StartProcess = func() error {
-		return SaveState(service.StatePath, State{
-			PID:         42,
-			StartedAt:   now,
-			HeartbeatAt: now,
-		})
+	statePath := filepath.Join(dir, "monitor.json")
+	stopPath := filepath.Join(dir, "monitor.stop")
+	service, err := NewService(ServiceConfig{
+		StatePath: statePath,
+		StopPath:  stopPath,
+		StartProcess: func() error {
+			return SaveState(statePath, State{
+				PID:         42,
+				StartedAt:   now,
+				HeartbeatAt: now,
+			})
+		},
+		KillProcess: func(int) error { return nil },
+		Now:         func() time.Time { return now },
+		Sleep: func(d time.Duration) {
+			now = now.Add(d)
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewService() error = %v", err)
 	}
 
 	started, err := service.Start()
@@ -38,20 +43,26 @@ func TestServiceStartWaitsForHealthyState(t *testing.T) {
 
 func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 	dir := t.TempDir()
-	service := NewService(
-		filepath.Join(dir, "monitor.json"),
-		filepath.Join(dir, "monitor.stop"),
-	)
-
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
-	service.Now = func() time.Time { return now }
-	service.Sleep = func(d time.Duration) {
-		now = now.Add(d)
-	}
+	statePath := filepath.Join(dir, "monitor.json")
+	stopPath := filepath.Join(dir, "monitor.stop")
 	killedPID := 0
-	service.KillProcess = func(pid int) error {
-		killedPID = pid
-		return nil
+
+	service, err := NewService(ServiceConfig{
+		StatePath:    statePath,
+		StopPath:     stopPath,
+		StartProcess: func() error { return nil },
+		KillProcess: func(pid int) error {
+			killedPID = pid
+			return nil
+		},
+		Now: func() time.Time { return now },
+		Sleep: func(d time.Duration) {
+			now = now.Add(d)
+		},
+	})
+	if err != nil {
+		t.Fatalf("NewService() error = %v", err)
 	}
 	if err := SaveState(service.StatePath, State{
 		PID:         42,
@@ -75,13 +86,17 @@ func TestServiceStopRemovesStateWhenMonitorDoesNotExit(t *testing.T) {
 
 func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 	dir := t.TempDir()
-	service := NewService(
-		filepath.Join(dir, "monitor.json"),
-		filepath.Join(dir, "monitor.stop"),
-	)
-
 	now := time.Date(2026, 7, 3, 12, 0, 10, 0, time.UTC)
-	service.Now = func() time.Time { return now }
+	service, err := NewService(ServiceConfig{
+		StatePath:    filepath.Join(dir, "monitor.json"),
+		StopPath:     filepath.Join(dir, "monitor.stop"),
+		StartProcess: func() error { return nil },
+		KillProcess:  func(int) error { return nil },
+		Now:          func() time.Time { return now },
+	})
+	if err != nil {
+		t.Fatalf("NewService() error = %v", err)
+	}
 	if err := SaveState(service.StatePath, State{
 		PID:         42,
 		StartedAt:   now.Add(-10 * time.Second),
@@ -103,10 +118,17 @@ func TestServiceStatusReportsStaleMonitor(t *testing.T) {
 }
 
 func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
-	service := NewService("monitor.json", "monitor.stop")
-	service.Now = func() time.Time { return time.Unix(0, 0) }
-	service.Sleep = func(time.Duration) {}
-	service.StartProcess = func() error { return errors.New("spawn failed") }
+	service, err := NewService(ServiceConfig{
+		StatePath:    "monitor.json",
+		StopPath:     "monitor.stop",
+		StartProcess: func() error { return errors.New("spawn failed") },
+		KillProcess:  func(int) error { return nil },
+		Now:          func() time.Time { return time.Unix(0, 0) },
+		Sleep:        func(time.Duration) {},
+	})
+	if err != nil {
+		t.Fatalf("NewService() error = %v", err)
+	}
 
 	started, err := service.Start()
 	if err == nil {
@@ -114,5 +136,12 @@ func TestServiceStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 	}
 	if started {
 		t.Fatal("expected Start() to report not started")
+	}
+}
+
+func TestNewServiceRequiresAllMinimalDependencies(t *testing.T) {
+	_, err := NewService(ServiceConfig{})
+	if err == nil {
+		t.Fatal("expected NewService() to fail")
 	}
 }
