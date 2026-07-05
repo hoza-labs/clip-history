@@ -10,6 +10,8 @@ import (
 
 const createNoWindow = 0x08000000
 
+// startMonitorProcess starts a new instance of the program in the background.
+// The new instance will run the clipboard monitor until it receives a "stop" signal.
 var startMonitorProcess = func() error {
 	exe, err := os.Executable()
 	if err != nil {
@@ -38,6 +40,8 @@ var startMonitorProcess = func() error {
 	return cmd.Process.Release()
 }
 
+// killMonitorProcess sends a "kill" signal to the process with the given PID. The Controller uses this
+// method as a last resort to stop the clipboard monitor if it does not respond to the "stop" signal.
 var killMonitorProcess = func(pid int) error {
 	process, err := os.FindProcess(pid)
 	if err != nil {

@@ -68,6 +68,9 @@ var (
 	monitorWorkers                    sync.Map
 )
 
+// The worker struct represents a single instance of the clipboard monitor running in the
+// background. The worker has its own message window and listens for clipboard updates until
+// it receives a "stop" signal. We expect at most a single worker to be active at any time.
 type worker struct {
 	hwnd      uintptr
 	logger    logging.Logger
@@ -76,6 +79,10 @@ type worker struct {
 	startedAt time.Time
 }
 
+// RunWorker is the entrypoint for the clipboard monitor worker process. It creates a message window
+// and enters a message loop, listening for clipboard updates until it receives a "stop" signal.
+// This function does not return until the worker is stopped, either by receiving a "stop" signal or
+// by an error occurring.
 func RunWorker(logger logging.Logger, statePath, stopPath string) error {
 	if err := RemoveFile(stopPath); err != nil {
 		return fmt.Errorf("clear stop signal: %w", err)
