@@ -65,10 +65,10 @@ func NewController(cfg ControllerConfig) (Controller, error) {
 	return Controller{cfg: cfg}, nil
 }
 
-// Start returns true if monitoring was started; it returns false if it was already
-// running or could not be started due to error.
-func (s Controller) Start() (bool, error) {
-	status, err := s.Status()
+// StartMonitor returns true if monitoring was started; it returns false if it was
+// already running or could not be started due to error.
+func (s Controller) StartMonitor() (bool, error) {
+	status, err := s.GetMonitorStatus()
 	if err != nil {
 		return false, err
 	}
@@ -89,7 +89,7 @@ func (s Controller) Start() (bool, error) {
 
 	deadline := s.cfg.Now().Add(s.cfg.StartTimeout)
 	for s.cfg.Now().Before(deadline) || s.cfg.Now().Equal(deadline) {
-		status, err := s.Status()
+		status, err := s.GetMonitorStatus()
 		if err == nil && status.Running {
 			return true, nil
 		}
@@ -103,7 +103,7 @@ func (s Controller) Start() (bool, error) {
 	return false, errors.New("monitor did not become ready in time")
 }
 
-func (s Controller) Stop() (bool, error) {
+func (s Controller) StopMonitor() (bool, error) {
 	state, err := LoadState(s.cfg.StatePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
@@ -143,7 +143,7 @@ func (s Controller) Stop() (bool, error) {
 	return true, nil
 }
 
-func (s Controller) Status() (Status, error) {
+func (s Controller) GetMonitorStatus() (Status, error) {
 	state, err := LoadState(s.cfg.StatePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {

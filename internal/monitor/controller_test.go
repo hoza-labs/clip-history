@@ -32,9 +32,9 @@ func TestControllerStartWaitsForHealthyState(t *testing.T) {
 		t.Fatalf("NewController() error = %v", err)
 	}
 
-	started, err := controller.Start()
+	started, err := controller.StartMonitor()
 	if err != nil {
-		t.Fatalf("Start() error = %v", err)
+		t.Fatalf("StartMonitor() error = %v", err)
 	}
 	if !started {
 		t.Fatal("expected service to start monitoring")
@@ -72,9 +72,9 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 		t.Fatalf("SaveState() error = %v", err)
 	}
 
-	stopped, err := controller.Stop()
+	stopped, err := controller.StopMonitor()
 	if err != nil {
-		t.Fatalf("Stop() error = %v", err)
+		t.Fatalf("StopMonitor() error = %v", err)
 	}
 	if !stopped {
 		t.Fatal("expected service to report it stopped a running monitor")
@@ -105,9 +105,9 @@ func TestControllerStatusReportsStaleWorker(t *testing.T) {
 		t.Fatalf("SaveState() error = %v", err)
 	}
 
-	status, err := controller.Status()
+	status, err := controller.GetMonitorStatus()
 	if err != nil {
-		t.Fatalf("Status() error = %v", err)
+		t.Fatalf("GetMonitorStatus() error = %v", err)
 	}
 	if status.Running {
 		t.Fatal("expected stale worker to report not running")
@@ -130,9 +130,9 @@ func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 		t.Fatalf("NewController() error = %v", err)
 	}
 
-	started, err := controller.Start()
+	started, err := controller.StartMonitor()
 	if err == nil {
-		t.Fatal("expected Start() to fail")
+		t.Fatal("expected StartMonitor() to fail")
 	}
 	if started {
 		t.Fatal("expected Start() to report not started")

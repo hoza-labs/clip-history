@@ -30,7 +30,7 @@ func runStartCommand(logger logging.Logger, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	started, err := controller.Start()
+	started, err := controller.StartMonitor()
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func runStopCommand(logger logging.Logger, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	stopped, err := controller.Stop()
+	stopped, err := controller.StopMonitor()
 	if err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func runStatusCommand(logger logging.Logger, cfg config.Config) error {
 	if err != nil {
 		return err
 	}
-	status, err := controller.Status()
+	status, err := controller.GetMonitorStatus()
 	if err != nil {
 		return err
 	}
