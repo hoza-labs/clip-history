@@ -37,13 +37,20 @@ func Execute() error {
 	case "config":
 		return runConfigCommand(logger, cfg)
 	case "start":
+		// this is the public command that causes the Controller to spawn a separate
+		// instance of the program to run in the background until told to stop.
 		return runStartCommand(logger, cfg)
 	case "stop":
+		// this is the public command that causes the Controller to send a "stop" signal
+		// to the clipboard monitor (the separate instance running in the background).
 		return runStopCommand(logger, cfg)
 	case "status":
+		// this is the public command that causes the Controller to obtain the current status
+		// of the clipboard monitor (the separate instance running in the background).
 		return runStatusCommand(logger, cfg)
 	case "monitor":
-		// this is an internal command, used to spawn the background monitoring process
+		// This is a "hidden" command that actually runs the clipboard monitor in the background.
+		// It does not return until it receives a "stop" external signal.
 		return runMonitorCommand(logger, cfg)
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
