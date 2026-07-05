@@ -22,3 +22,6 @@ The `monitor` subcommand is a hidden internal worker command used by `start`.
 ## Releases
 - Track the next release in [VERSION](../VERSION).
 - Publish with [scripts/create-release.sh](../scripts/create-release.sh).
+
+## Architecture
+- Project decisions are tracked as [Architecture Decision Records](adr/index.md).

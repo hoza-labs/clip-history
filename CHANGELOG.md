@@ -15,3 +15,4 @@
 - Consolidated shared repository rules into `CONVENTIONS.md` and reserved `AGENTS.md` for agent-specific instructions.
 - Updated the Go API design convention to prefer accepting interfaces and returning structs, and refactored monitor service accordingly.
 - Renamed monitor lifecycle coordination to `Controller` and the long-running child process implementation to `Worker`.
+- Adopted Architecture Decision Records and documented the initial language, CLI, background worker, and worker coordination decisions.

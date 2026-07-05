@@ -7,6 +7,8 @@ Shared coding and design rules for this repository live here. Keep this file as 
 - Keep shared coding and design rules in `CONVENTIONS.md`.
 - Reserve `AGENTS.md` for truly agent-specific instructions.
 - Use `README.md` for project overview, development workflow, and links to the canonical conventions.
+- Track significant architecture decisions as brief ADRs in `docs/adr/`.
+- ADRs should include status, date, context, decision, top alternatives, and brief rationale with pros and cons.
 
 ## Project rules
 
