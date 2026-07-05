@@ -39,7 +39,9 @@ func runStartCommand(logger logging.Logger, cfg config.Config) error {
 		return err
 	}
 	if !started {
-		fmt.Println("Clipboard monitoring is already running.")
+		msg := "Clipboard monitoring is already running."
+		logger.Info(msg)
+		fmt.Println(msg)
 		return nil
 	}
 

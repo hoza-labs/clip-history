@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
 
@@ -16,6 +17,7 @@ type Logger interface {
 
 type FileLogger struct {
 	file *os.File
+	mu   sync.Mutex
 }
 
 func NewLogger(dir string) (Logger, error) {
@@ -51,6 +53,8 @@ func (l *FileLogger) Close() error {
 	if l.file == nil {
 		return nil
 	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	return l.file.Close()
 }
 
@@ -59,5 +63,9 @@ func (l *FileLogger) write(level, message string) {
 		return
 	}
 	timestamp := time.Now().UTC().Format(time.RFC3339)
-	_, _ = fmt.Fprintf(l.file, "%s [%s] %s\n", timestamp, level, message)
+	line := fmt.Sprintf("%s [%7d] [%-5s] %s\n", timestamp, os.Getpid(), level, message)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	_, _ = l.file.WriteString(line)
 }

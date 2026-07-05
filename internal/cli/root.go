@@ -31,9 +31,20 @@ func Execute() error {
 	}
 	defer logger.Close()
 
-	logger.Info("clip-history started")
+	logger.Info("clip-history entry")
 
-	switch os.Args[1] {
+	err = runCommand(os.Args[1], logger, cfg)
+	if err != nil {
+		logger.Error(err.Error())
+		return err
+	}
+
+	logger.Info("clip-history exit")
+	return nil
+}
+
+func runCommand(command string, logger logging.Logger, cfg config.Config) error {
+	switch command {
 	case "config":
 		return runConfigCommand(logger, cfg)
 	case "start":
@@ -53,7 +64,7 @@ func Execute() error {
 		// It does not return until it receives a "stop" external signal.
 		return runMonitorCommand(logger, cfg)
 	default:
-		return fmt.Errorf("unknown command: %s", os.Args[1])
+		return fmt.Errorf("unknown command: %s", command)
 	}
 }
 
