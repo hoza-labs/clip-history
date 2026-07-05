@@ -1,6 +1,6 @@
 //go:build windows
 
-package cli
+package monitor
 
 import (
 	"os"
@@ -10,7 +10,7 @@ import (
 
 const createNoWindow = 0x08000000
 
-func startMonitorProcess() error {
+var startMonitorProcess = func() error {
 	exe, err := os.Executable()
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func startMonitorProcess() error {
 	return cmd.Process.Release()
 }
 
-func killMonitorProcess(pid int) error {
+var killMonitorProcess = func(pid int) error {
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		return err

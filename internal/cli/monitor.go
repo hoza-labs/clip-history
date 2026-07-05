@@ -9,12 +9,16 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
-var newMonitorController = func(cfg config.Config) (monitor.Controller, error) {
+type monitorController interface {
+	StartMonitor() (bool, error)
+	StopMonitor() (bool, error)
+	GetMonitorStatus() (monitor.Status, error)
+}
+
+var newMonitorController = func(cfg config.Config) (monitorController, error) {
 	controller, err := monitor.NewController(monitor.ControllerConfig{
-		StatePath:    cfg.MonitorStatePath,
-		StopPath:     cfg.MonitorStopPath,
-		StartProcess: startMonitorProcess,
-		KillProcess:  killMonitorProcess,
+		StatePath: cfg.MonitorStatePath,
+		StopPath:  cfg.MonitorStopPath,
 	})
 	return controller, err
 }

@@ -36,14 +36,15 @@ func Execute() error {
 	switch os.Args[1] {
 	case "config":
 		return runConfigCommand(logger, cfg)
-	case "monitor":
-		return runMonitorCommand(logger, cfg)
 	case "start":
 		return runStartCommand(logger, cfg)
 	case "stop":
 		return runStopCommand(logger, cfg)
 	case "status":
 		return runStatusCommand(logger, cfg)
+	case "monitor":
+		// this is an internal command, used to spawn the background monitoring process
+		return runMonitorCommand(logger, cfg)
 	default:
 		return fmt.Errorf("unknown command: %s", os.Args[1])
 	}

@@ -16,8 +16,6 @@ type Status struct {
 type ControllerConfig struct {
 	StatePath        string
 	StopPath         string
-	StartProcess     func() error
-	KillProcess      func(int) error
 	HeartbeatTimeout time.Duration
 	StartTimeout     time.Duration
 	StopTimeout      time.Duration
@@ -36,12 +34,6 @@ func NewController(cfg ControllerConfig) (Controller, error) {
 	}
 	if cfg.StopPath == "" {
 		return Controller{}, errors.New("stop path is required")
-	}
-	if cfg.StartProcess == nil {
-		return Controller{}, errors.New("start process function is required")
-	}
-	if cfg.KillProcess == nil {
-		return Controller{}, errors.New("kill process function is required")
 	}
 	if cfg.HeartbeatTimeout == 0 {
 		cfg.HeartbeatTimeout = DefaultHeartbeatTimeout
@@ -83,7 +75,7 @@ func (s Controller) StartMonitor() (bool, error) {
 		return false, fmt.Errorf("remove stale stop signal: %w", err)
 	}
 
-	if err := s.cfg.StartProcess(); err != nil {
+	if err := startMonitorProcess(); err != nil {
 		return false, err
 	}
 
@@ -128,7 +120,7 @@ func (s Controller) StopMonitor() (bool, error) {
 	}
 
 	if state.PID > 0 {
-		if err := s.cfg.KillProcess(state.PID); err != nil {
+		if err := killMonitorProcess(state.PID); err != nil {
 			return true, err
 		}
 	}

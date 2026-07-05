@@ -12,18 +12,24 @@ func TestControllerStartWaitsForHealthyState(t *testing.T) {
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
 	statePath := filepath.Join(dir, "monitor.json")
 	stopPath := filepath.Join(dir, "monitor.stop")
+	oldStart := startMonitorProcess
+	oldKill := killMonitorProcess
+	startMonitorProcess = func() error {
+		return SaveState(statePath, State{
+			PID:         42,
+			StartedAt:   now,
+			HeartbeatAt: now,
+		})
+	}
+	killMonitorProcess = func(int) error { return nil }
+	t.Cleanup(func() {
+		startMonitorProcess = oldStart
+		killMonitorProcess = oldKill
+	})
 	controller, err := NewController(ControllerConfig{
 		StatePath: statePath,
 		StopPath:  stopPath,
-		StartProcess: func() error {
-			return SaveState(statePath, State{
-				PID:         42,
-				StartedAt:   now,
-				HeartbeatAt: now,
-			})
-		},
-		KillProcess: func(int) error { return nil },
-		Now:         func() time.Time { return now },
+		Now:       func() time.Time { return now },
 		Sleep: func(d time.Duration) {
 			now = now.Add(d)
 		},
@@ -47,16 +53,22 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 	statePath := filepath.Join(dir, "monitor.json")
 	stopPath := filepath.Join(dir, "monitor.stop")
 	killedPID := 0
+	oldStart := startMonitorProcess
+	oldKill := killMonitorProcess
+	startMonitorProcess = func() error { return nil }
+	killMonitorProcess = func(pid int) error {
+		killedPID = pid
+		return nil
+	}
+	t.Cleanup(func() {
+		startMonitorProcess = oldStart
+		killMonitorProcess = oldKill
+	})
 
 	controller, err := NewController(ControllerConfig{
-		StatePath:    statePath,
-		StopPath:     stopPath,
-		StartProcess: func() error { return nil },
-		KillProcess: func(pid int) error {
-			killedPID = pid
-			return nil
-		},
-		Now: func() time.Time { return now },
+		StatePath: statePath,
+		StopPath:  stopPath,
+		Now:       func() time.Time { return now },
 		Sleep: func(d time.Duration) {
 			now = now.Add(d)
 		},
@@ -87,12 +99,18 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 func TestControllerStatusReportsStaleWorker(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 10, 0, time.UTC)
+	oldStart := startMonitorProcess
+	oldKill := killMonitorProcess
+	startMonitorProcess = func() error { return nil }
+	killMonitorProcess = func(int) error { return nil }
+	t.Cleanup(func() {
+		startMonitorProcess = oldStart
+		killMonitorProcess = oldKill
+	})
 	controller, err := NewController(ControllerConfig{
-		StatePath:    filepath.Join(dir, "monitor.json"),
-		StopPath:     filepath.Join(dir, "monitor.stop"),
-		StartProcess: func() error { return nil },
-		KillProcess:  func(int) error { return nil },
-		Now:          func() time.Time { return now },
+		StatePath: filepath.Join(dir, "monitor.json"),
+		StopPath:  filepath.Join(dir, "monitor.stop"),
+		Now:       func() time.Time { return now },
 	})
 	if err != nil {
 		t.Fatalf("NewController() error = %v", err)
@@ -118,13 +136,19 @@ func TestControllerStatusReportsStaleWorker(t *testing.T) {
 }
 
 func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
+	oldStart := startMonitorProcess
+	oldKill := killMonitorProcess
+	startMonitorProcess = func() error { return errors.New("spawn failed") }
+	killMonitorProcess = func(int) error { return nil }
+	t.Cleanup(func() {
+		startMonitorProcess = oldStart
+		killMonitorProcess = oldKill
+	})
 	controller, err := NewController(ControllerConfig{
-		StatePath:    "monitor.json",
-		StopPath:     "monitor.stop",
-		StartProcess: func() error { return errors.New("spawn failed") },
-		KillProcess:  func(int) error { return nil },
-		Now:          func() time.Time { return time.Unix(0, 0) },
-		Sleep:        func(time.Duration) {},
+		StatePath: "monitor.json",
+		StopPath:  "monitor.stop",
+		Now:       func() time.Time { return time.Unix(0, 0) },
+		Sleep:     func(time.Duration) {},
 	})
 	if err != nil {
 		t.Fatalf("NewController() error = %v", err)
