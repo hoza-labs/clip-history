@@ -24,6 +24,9 @@ type ControllerConfig struct {
 	Sleep            func(time.Duration)
 }
 
+// A Controller is the thing that controls the clipboard monitor, which is a separate process,
+// running in the background. It's a separate, long-running instance of this same program.
+// The receiver variable 'mc' in this file stands for "monitor controller".
 type Controller struct {
 	cfg ControllerConfig
 }
@@ -59,8 +62,8 @@ func NewController(cfg ControllerConfig) (Controller, error) {
 
 // StartMonitor returns true if monitoring was started; it returns false if it was
 // already running or could not be started due to error.
-func (s Controller) StartMonitor() (bool, error) {
-	status, err := s.GetMonitorStatus()
+func (mc Controller) StartMonitor() (bool, error) {
+	status, err := mc.GetMonitorStatus()
 	if err != nil {
 		return false, err
 	}
@@ -68,10 +71,10 @@ func (s Controller) StartMonitor() (bool, error) {
 		return false, nil
 	}
 
-	if err := RemoveFile(s.cfg.StatePath); err != nil {
+	if err := RemoveFile(mc.cfg.StatePath); err != nil {
 		return false, fmt.Errorf("remove stale state: %w", err)
 	}
-	if err := RemoveFile(s.cfg.StopPath); err != nil {
+	if err := RemoveFile(mc.cfg.StopPath); err != nil {
 		return false, fmt.Errorf("remove stale stop signal: %w", err)
 	}
 
@@ -79,9 +82,9 @@ func (s Controller) StartMonitor() (bool, error) {
 		return false, err
 	}
 
-	deadline := s.cfg.Now().Add(s.cfg.StartTimeout)
-	for s.cfg.Now().Before(deadline) || s.cfg.Now().Equal(deadline) {
-		status, err := s.GetMonitorStatus()
+	deadline := mc.cfg.Now().Add(mc.cfg.StartTimeout)
+	for mc.cfg.Now().Before(deadline) || mc.cfg.Now().Equal(deadline) {
+		status, err := mc.GetMonitorStatus()
 		if err == nil && status.Running {
 			return true, nil
 		}
@@ -89,34 +92,34 @@ func (s Controller) StartMonitor() (bool, error) {
 			return false, err
 		}
 
-		s.cfg.Sleep(s.cfg.PollInterval)
+		mc.cfg.Sleep(mc.cfg.PollInterval)
 	}
 
 	return false, errors.New("monitor did not become ready in time")
 }
 
-func (s Controller) StopMonitor() (bool, error) {
-	state, err := LoadState(s.cfg.StatePath)
+func (mc Controller) StopMonitor() (bool, error) {
+	state, err := LoadState(mc.cfg.StatePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			_ = RemoveFile(s.cfg.StopPath)
+			_ = RemoveFile(mc.cfg.StopPath)
 			return false, nil
 		}
 		return false, err
 	}
 
-	if err := os.WriteFile(s.cfg.StopPath, []byte("stop\n"), 0o644); err != nil {
+	if err := os.WriteFile(mc.cfg.StopPath, []byte("stop\n"), 0o644); err != nil {
 		return false, fmt.Errorf("write stop signal: %w", err)
 	}
 
-	deadline := s.cfg.Now().Add(s.cfg.StopTimeout)
-	for s.cfg.Now().Before(deadline) || s.cfg.Now().Equal(deadline) {
-		if _, err := os.Stat(s.cfg.StatePath); errors.Is(err, os.ErrNotExist) {
-			_ = RemoveFile(s.cfg.StopPath)
+	deadline := mc.cfg.Now().Add(mc.cfg.StopTimeout)
+	for mc.cfg.Now().Before(deadline) || mc.cfg.Now().Equal(deadline) {
+		if _, err := os.Stat(mc.cfg.StatePath); errors.Is(err, os.ErrNotExist) {
+			_ = RemoveFile(mc.cfg.StopPath)
 			return true, nil
 		}
 
-		s.cfg.Sleep(s.cfg.PollInterval)
+		mc.cfg.Sleep(mc.cfg.PollInterval)
 	}
 
 	if state.PID > 0 {
@@ -125,18 +128,18 @@ func (s Controller) StopMonitor() (bool, error) {
 		}
 	}
 
-	if err := RemoveFile(s.cfg.StatePath); err != nil {
+	if err := RemoveFile(mc.cfg.StatePath); err != nil {
 		return true, fmt.Errorf("remove monitor state: %w", err)
 	}
-	if err := RemoveFile(s.cfg.StopPath); err != nil {
+	if err := RemoveFile(mc.cfg.StopPath); err != nil {
 		return true, fmt.Errorf("remove stop signal: %w", err)
 	}
 
 	return true, nil
 }
 
-func (s Controller) GetMonitorStatus() (Status, error) {
-	state, err := LoadState(s.cfg.StatePath)
+func (mc Controller) GetMonitorStatus() (Status, error) {
+	state, err := LoadState(mc.cfg.StatePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return Status{}, nil
@@ -144,7 +147,7 @@ func (s Controller) GetMonitorStatus() (Status, error) {
 		return Status{}, err
 	}
 
-	if IsRunning(state, s.cfg.Now(), s.cfg.HeartbeatTimeout) {
+	if IsRunning(state, mc.cfg.Now(), mc.cfg.HeartbeatTimeout) {
 		return Status{
 			Running: true,
 			PID:     state.PID,
