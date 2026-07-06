@@ -37,4 +37,7 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	if filepath.Base(cfg.MonitorStatePath) != "monitor.json" {
 		t.Fatalf("unexpected monitor state file name: %s", filepath.Base(cfg.MonitorStatePath))
 	}
+	if cfg.LogRetentionDays != 14 {
+		t.Fatalf("log retention days = %d, want 14", cfg.LogRetentionDays)
+	}
 }

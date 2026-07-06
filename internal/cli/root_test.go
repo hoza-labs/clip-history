@@ -77,7 +77,15 @@ func TestExecuteLogsCommandErrors(t *testing.T) {
 		t.Fatal("expected Execute to return an error")
 	}
 
-	data, readErr := os.ReadFile(filepath.Join(home, ".clip-history", "logs", "clip-history.log"))
+	logs, globErr := filepath.Glob(filepath.Join(home, ".clip-history", "logs", "clip-history-*.log"))
+	if globErr != nil {
+		t.Fatalf("glob log file: %v", globErr)
+	}
+	if len(logs) != 1 {
+		t.Fatalf("log file count = %d, want 1", len(logs))
+	}
+
+	data, readErr := os.ReadFile(logs[0])
 	if readErr != nil {
 		t.Fatalf("read log file: %v", readErr)
 	}

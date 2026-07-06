@@ -4,8 +4,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sync"
 	"time"
+)
+
+const logFileDateLayout = "2006-02-01"
+
+var (
+	logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
+	now            = time.Now
 )
 
 type Logger struct {
@@ -13,21 +21,65 @@ type Logger struct {
 	mu   sync.Mutex
 }
 
-func NewLogger(dir string) (*Logger, error) {
+func NewLogger(dir string, retentionDays int) (*Logger, error) {
 	if dir == "" {
 		return nil, fmt.Errorf("log directory is required")
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("create log dir: %w", err)
 	}
+	if err := removeExpiredLogs(dir, retentionDays); err != nil {
+		return nil, err
+	}
 
-	path := filepath.Join(dir, "clip-history.log")
+	path := filepath.Join(dir, fmt.Sprintf("clip-history-%s.log", now().Format(logFileDateLayout)))
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("open log file: %w", err)
 	}
 
 	return &Logger{file: file}, nil
+}
+
+func removeExpiredLogs(dir string, retentionDays int) error {
+	if retentionDays < 0 {
+		return fmt.Errorf("log retention days must be non-negative")
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("read log dir: %w", err)
+	}
+
+	cutoff := beginningOfDay(now().AddDate(0, 0, -retentionDays))
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		matches := logFilePattern.FindStringSubmatch(entry.Name())
+		if matches == nil {
+			continue
+		}
+
+		logDate, err := time.ParseInLocation(logFileDateLayout, matches[1], time.Local)
+		if err != nil {
+			continue
+		}
+		if !logDate.Before(cutoff) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil {
+			return fmt.Errorf("remove expired log %s: %w", entry.Name(), err)
+		}
+	}
+
+	return nil
+}
+
+func beginningOfDay(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }
 
 func (l *Logger) Info(message string) {

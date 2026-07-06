@@ -16,6 +16,7 @@ type Config struct {
 	RuntimeDir       string `json:"runtime_dir"`
 	MonitorStatePath string `json:"monitor_state_path"`
 	MonitorStopPath  string `json:"monitor_stop_path"`
+	LogRetentionDays int    `json:"log_retention_days"`
 	SaveSensitive    bool   `json:"save_sensitive"`
 }
 
@@ -33,6 +34,7 @@ func Default(homeDir string) Config {
 		RuntimeDir:       filepath.Join(baseDir, "run"),
 		MonitorStatePath: filepath.Join(baseDir, "run", "monitor.json"),
 		MonitorStopPath:  filepath.Join(baseDir, "run", "monitor.stop"),
+		LogRetentionDays: 14,
 		SaveSensitive:    false,
 	}
 }
@@ -100,6 +102,9 @@ func normalize(cfg Config, homeDir string) Config {
 	}
 	if cfg.MonitorStopPath == "" {
 		cfg.MonitorStopPath = defaults.MonitorStopPath
+	}
+	if cfg.LogRetentionDays <= 0 {
+		cfg.LogRetentionDays = defaults.LogRetentionDays
 	}
 
 	return cfg

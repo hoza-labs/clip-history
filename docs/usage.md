@@ -13,4 +13,4 @@
 
 ## Configuration
 
-The application stores its config, logs, and monitor runtime state in a directory named `.clip-history` beneath the user's home directory.
+The application stores its config, logs, and monitor runtime state in a directory named `.clip-history` beneath the user's home directory. Logs are written as `clip-history-{yyyy-dd-mm}.log` and matching old log files are removed after `log_retention_days`.

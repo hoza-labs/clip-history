@@ -5,6 +5,7 @@
 - Scaffolded the initial Go CLI project structure.
 - Added config persistence under the user's home directory.
 - Added file-based logging and sensitivity filtering modules.
+- Added date-stamped log files with configurable retention cleanup.
 - Added initial BDD-style unit tests for the public module behavior.
 - Added `ch version` and a single source of truth for the target semver release.
 - Added a documented GitHub release workflow driven by `scripts/create-release.sh`.
