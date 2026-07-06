@@ -13,21 +13,21 @@ type Logger struct {
 	mu   sync.Mutex
 }
 
-func NewLogger(dir string) (Logger, error) {
+func NewLogger(dir string) (*Logger, error) {
 	if dir == "" {
-		return Logger{}, fmt.Errorf("log directory is required")
+		return nil, fmt.Errorf("log directory is required")
 	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return Logger{}, fmt.Errorf("create log dir: %w", err)
+		return nil, fmt.Errorf("create log dir: %w", err)
 	}
 
 	path := filepath.Join(dir, "clip-history.log")
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
-		return Logger{}, fmt.Errorf("open log file: %w", err)
+		return nil, fmt.Errorf("open log file: %w", err)
 	}
 
-	return Logger{file: file}, nil
+	return &Logger{file: file}, nil
 }
 
 func (l *Logger) Info(message string) {

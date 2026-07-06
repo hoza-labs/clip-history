@@ -39,7 +39,7 @@ func Execute() error {
 
 	logger.Info("clip-history entry")
 
-	err = runCommand(os.Args[1], &logger, cfg)
+	err = runCommand(os.Args[1], logger, cfg)
 	if err != nil {
 		logger.Error(err.Error())
 		return err

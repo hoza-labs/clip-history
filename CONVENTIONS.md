@@ -22,3 +22,6 @@ Shared coding and design rules for this repository live here. Keep this file as 
 - Favor avoiding duplication by storing a normalized copy of constructor config objects rather than repeating the same fields on constructed types.
 - Package methods and functions should prefer accepting interfaces and returning structs.
 - Exported structs should generally favor keeping fields private, exposing behavior through methods rather than public mutable fields.
+- Constructors should generally return values (plain structs) rather than pointers to structs, but there are exceptions for very large structs and most structs that themselves contain pointers.
+- Constructors should return pointers to structs that own mutable state, mutexes, file handles, connections, caches, or other resources that should not be copied.
+- Structs should be passed by value whenever they are intended to be immutable.
