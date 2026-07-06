@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/hoza-labs/clip-history/internal/config"
-	"github.com/hoza-labs/clip-history/internal/logging"
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
@@ -23,11 +22,11 @@ var newMonitorController = func(cfg config.Config) (monitorController, error) {
 	return controller, err
 }
 
-var runMonitorWorker = func(logger logging.Logger, cfg config.Config) error {
+var runMonitorWorker = func(logger commandLogger, cfg config.Config) error {
 	return monitor.RunWorker(logger, cfg.MonitorStatePath, cfg.MonitorStopPath)
 }
 
-func runStartCommand(logger logging.Logger, cfg config.Config) error {
+func runStartCommand(logger commandLogger, cfg config.Config) error {
 	logger.Info("running start command")
 
 	controller, err := newMonitorController(cfg)
@@ -49,7 +48,7 @@ func runStartCommand(logger logging.Logger, cfg config.Config) error {
 	return nil
 }
 
-func runStopCommand(logger logging.Logger, cfg config.Config) error {
+func runStopCommand(logger commandLogger, cfg config.Config) error {
 	logger.Info("running stop command")
 
 	controller, err := newMonitorController(cfg)
@@ -69,7 +68,7 @@ func runStopCommand(logger logging.Logger, cfg config.Config) error {
 	return nil
 }
 
-func runStatusCommand(logger logging.Logger, cfg config.Config) error {
+func runStatusCommand(logger commandLogger, cfg config.Config) error {
 	logger.Info("running status command")
 
 	controller, err := newMonitorController(cfg)
@@ -98,7 +97,7 @@ func runStatusCommand(logger logging.Logger, cfg config.Config) error {
 
 // runMonitorCommand is the hidden worker entrypoint used by `ch start` to spawn
 // the long-running clipboard monitoring child process.
-func runMonitorCommand(logger logging.Logger, cfg config.Config) error {
+func runMonitorCommand(logger commandLogger, cfg config.Config) error {
 	logger.Info("running monitor command")
 	return runMonitorWorker(logger, cfg)
 }

@@ -82,7 +82,7 @@ func TestExecuteLogsCommandErrors(t *testing.T) {
 		t.Fatalf("read log file: %v", readErr)
 	}
 
-	if !strings.Contains(string(data), "ERROR unknown command: bogus") {
+	if !strings.Contains(string(data), "[ERROR] unknown command: bogus") {
 		t.Fatalf("log file = %q, want command error", string(data))
 	}
 }

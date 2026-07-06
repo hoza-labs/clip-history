@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/hoza-labs/clip-history/internal/config"
-	"github.com/hoza-labs/clip-history/internal/logging"
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
@@ -104,7 +103,7 @@ func TestRunMonitorCommandDelegatesToClipboardRunner(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldRunner := runMonitorWorker
 	called := false
-	runMonitorWorker = func(logger logging.Logger, gotCfg config.Config) error {
+	runMonitorWorker = func(logger commandLogger, gotCfg config.Config) error {
 		called = true
 		if gotCfg.MonitorStatePath != cfg.MonitorStatePath {
 			t.Fatalf("MonitorStatePath = %q, want %q", gotCfg.MonitorStatePath, cfg.MonitorStatePath)

@@ -8,6 +8,12 @@ import (
 	"github.com/hoza-labs/clip-history/internal/logging"
 )
 
+type commandLogger interface {
+	Info(string)
+	Error(string)
+	Debug(string)
+}
+
 func Execute() error {
 	if len(os.Args) < 2 {
 		return printRootHelp()
@@ -33,7 +39,7 @@ func Execute() error {
 
 	logger.Info("clip-history entry")
 
-	err = runCommand(os.Args[1], logger, cfg)
+	err = runCommand(os.Args[1], &logger, cfg)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -43,7 +49,7 @@ func Execute() error {
 	return nil
 }
 
-func runCommand(command string, logger logging.Logger, cfg config.Config) error {
+func runCommand(command string, logger commandLogger, cfg config.Config) error {
 	switch command {
 	case "config":
 		return runConfigCommand(logger, cfg)
