@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -39,5 +40,31 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	}
 	if cfg.LogRetentionDays != 14 {
 		t.Fatalf("log retention days = %d, want 14", cfg.LogRetentionDays)
+	}
+	if cfg.LogTimezone != "local" {
+		t.Fatalf("log timezone = %q, want local", cfg.LogTimezone)
+	}
+}
+
+func TestLoadRejectsInvalidLogTimezone(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
+
+	cfg := Default(dir)
+	cfg.LogTimezone = "Not/AZone"
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		t.Fatalf("encode config: %v", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(cfg.Path), 0o755); err != nil {
+		t.Fatalf("create config dir: %v", err)
+	}
+	if err := os.WriteFile(cfg.Path, data, 0o644); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+
+	if _, err := Load(); err == nil {
+		t.Fatal("expected Load to reject invalid log timezone")
 	}
 }

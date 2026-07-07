@@ -13,7 +13,7 @@ func TestNewLoggerCreatesLogFile(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
 
-	logger, err := NewLogger(dir, 14)
+	logger, err := NewLogger(dir, 14, "local")
 	if err != nil {
 		t.Fatalf("NewLogger returned error: %v", err)
 	}
@@ -31,7 +31,7 @@ func TestLoggerWritesTimestampPIDLevelAndMessage(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
 
-	logger, err := NewLogger(dir, 14)
+	logger, err := NewLogger(dir, 14, "local")
 	if err != nil {
 		t.Fatalf("NewLogger returned error: %v", err)
 	}
@@ -45,7 +45,7 @@ func TestLoggerWritesTimestampPIDLevelAndMessage(t *testing.T) {
 	}
 
 	line := strings.TrimSpace(string(data))
-	pattern := `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \[\s{0,6}\d{1,}\] \[ERROR\] boom$`
+	pattern := `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2}) \[\s{0,6}\d{1,}\] \[ERROR\] boom$`
 	if !regexp.MustCompile(pattern).MatchString(line) {
 		t.Fatalf("log line = %q, want timestamp [padded pid] level message", line)
 	}
@@ -55,13 +55,13 @@ func TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
 
-	first, err := NewLogger(dir, 14)
+	first, err := NewLogger(dir, 14, "local")
 	if err != nil {
 		t.Fatalf("NewLogger first returned error: %v", err)
 	}
 	defer first.Close()
 
-	second, err := NewLogger(dir, 14)
+	second, err := NewLogger(dir, 14, "local")
 	if err != nil {
 		t.Fatalf("NewLogger second returned error: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances(t *testing.T) {
 		t.Fatalf("line count = %d, want 50", len(lines))
 	}
 
-	pattern := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \[\s{0,6}\d{1,}\] \[(INFO |ERROR)\] (first|second)$`)
+	pattern := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2}) \[\s{0,6}\d{1,}\] \[(INFO |ERROR)\] (first|second)$`)
 	for _, line := range lines {
 		if !pattern.MatchString(line) {
 			t.Fatalf("malformed log line = %q", line)
@@ -111,7 +111,7 @@ func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 		}
 	}
 
-	logger, err := NewLogger(dir, 14)
+	logger, err := NewLogger(dir, 14, "local")
 	if err != nil {
 		t.Fatalf("NewLogger returned error: %v", err)
 	}
@@ -124,9 +124,37 @@ func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 }
 
 func TestNewLoggerRejectsNegativeRetention(t *testing.T) {
-	_, err := NewLogger(filepath.Join(t.TempDir(), "logs"), -1)
+	_, err := NewLogger(filepath.Join(t.TempDir(), "logs"), -1, "local")
 	if err == nil {
 		t.Fatal("expected NewLogger to reject negative retention")
+	}
+}
+
+func TestLoggerUsesConfiguredTimezoneForFileAndEntries(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "logs")
+	freezeTime(t, time.Date(2026, 7, 6, 6, 30, 0, 0, time.UTC))
+
+	logger, err := NewLogger(dir, 14, "America/Los_Angeles")
+	if err != nil {
+		t.Fatalf("NewLogger returned error: %v", err)
+	}
+	defer logger.Close()
+
+	logger.Info("hello")
+
+	data, err := os.ReadFile(filepath.Join(dir, "clip-history-2026-05-07.log"))
+	if err != nil {
+		t.Fatalf("read log file: %v", err)
+	}
+	if !strings.HasPrefix(string(data), "2026-07-05T23:30:00-07:00") {
+		t.Fatalf("log line = %q, want configured timezone timestamp", string(data))
+	}
+}
+
+func TestNewLoggerRejectsInvalidTimezone(t *testing.T) {
+	_, err := NewLogger(filepath.Join(t.TempDir(), "logs"), 14, "Not/AZone")
+	if err == nil {
+		t.Fatal("expected NewLogger to reject invalid timezone")
 	}
 }
 

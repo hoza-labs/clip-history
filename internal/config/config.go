@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type Config struct {
@@ -17,6 +18,7 @@ type Config struct {
 	MonitorStatePath string `json:"monitor_state_path"`
 	MonitorStopPath  string `json:"monitor_stop_path"`
 	LogRetentionDays int    `json:"log_retention_days"`
+	LogTimezone      string `json:"log_timezone"`
 	SaveSensitive    bool   `json:"save_sensitive"`
 }
 
@@ -35,6 +37,7 @@ func Default(homeDir string) Config {
 		MonitorStatePath: filepath.Join(baseDir, "run", "monitor.json"),
 		MonitorStopPath:  filepath.Join(baseDir, "run", "monitor.stop"),
 		LogRetentionDays: 14,
+		LogTimezone:      "local",
 		SaveSensitive:    false,
 	}
 }
@@ -72,6 +75,9 @@ func Load() (Config, error) {
 	}
 
 	cfg = normalize(cfg, homeDir)
+	if err := validate(cfg); err != nil {
+		return Config{}, err
+	}
 	if err := ensureDirectories(cfg); err != nil {
 		return Config{}, err
 	}
@@ -106,8 +112,21 @@ func normalize(cfg Config, homeDir string) Config {
 	if cfg.LogRetentionDays <= 0 {
 		cfg.LogRetentionDays = defaults.LogRetentionDays
 	}
+	if cfg.LogTimezone == "" {
+		cfg.LogTimezone = defaults.LogTimezone
+	}
 
 	return cfg
+}
+
+func validate(cfg Config) error {
+	if cfg.LogTimezone != "local" {
+		if _, err := time.LoadLocation(cfg.LogTimezone); err != nil {
+			return fmt.Errorf("invalid log timezone %q: %w", cfg.LogTimezone, err)
+		}
+	}
+
+	return nil
 }
 
 func ensureDirectories(cfg Config) error {

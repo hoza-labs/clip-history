@@ -4,7 +4,7 @@
 
 - [x] Scaffold a Go CLI project structure.
 - [x] Add config, logging, and safety modules with tests.
-  Current progress: logs are date-stamped and cleaned up according to config retention.
+  Current progress: logs are date-stamped, cleaned up according to config retention, and written in the configured time zone.
 - [x] Add a richer CLI command tree with subcommands and help.
 - [x] Establish semver-based version tracking and a GitHub release workflow.
 - [x] Adopt Architecture Decision Records for major project decisions.

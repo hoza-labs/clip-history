@@ -30,8 +30,8 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 
 - cmd/ch: CLI entrypoint.
 - internal/cli: command tree and subcommands.
-- internal/config: home-directory config handling, including log retention.
-- internal/logging: date-stamped file-based logging with retention cleanup.
+- internal/config: home-directory config handling, including log retention and time zone settings.
+- internal/logging: date-stamped file-based logging with retention cleanup and configurable timestamps.
 - internal/monitor: monitoring controller plus Windows clipboard worker implementation.
 - internal/safety: sensitivity filtering.
 - internal/version: version resolution for development and release builds.
