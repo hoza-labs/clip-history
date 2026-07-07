@@ -1,3 +1,9 @@
+// Package monitor coordinates the background clipboard monitor worker.
+//
+// Protocol: callers create a Controller with NewController, then use StartMonitor,
+// StopMonitor, and GetMonitorStatus against the state and stop-signal files. The
+// hidden CLI "monitor" command calls RunWorker directly; RunWorker owns the worker
+// loop, periodically writes heartbeat state, and exits when the stop file appears.
 package monitor
 
 import (
@@ -7,12 +13,14 @@ import (
 	"time"
 )
 
+// Status describes whether the monitor worker appears active.
 type Status struct {
 	Running bool
 	PID     int
 	Stale   bool
 }
 
+// ControllerConfig provides required file paths and optional timing/test hooks for Controller.
 type ControllerConfig struct {
 	StatePath        string
 	StopPath         string
@@ -24,13 +32,12 @@ type ControllerConfig struct {
 	Sleep            func(time.Duration)
 }
 
-// A Controller is the thing that controls the clipboard monitor, which is a separate process,
-// running in the background. It's a separate, long-running instance of this same program.
-// The receiver variable 'mc' in this file stands for "monitor controller".
+// Controller controls the separate long-running clipboard monitor process.
 type Controller struct {
 	cfg ControllerConfig
 }
 
+// NewController validates cfg and returns a Controller; StatePath and StopPath are required.
 func NewController(cfg ControllerConfig) (Controller, error) {
 	if cfg.StatePath == "" {
 		return Controller{}, errors.New("state path is required")
@@ -60,8 +67,7 @@ func NewController(cfg ControllerConfig) (Controller, error) {
 	return Controller{cfg: cfg}, nil
 }
 
-// StartMonitor returns true if monitoring was started; it returns false if it was
-// already running or could not be started due to error.
+// StartMonitor starts the worker and returns true when a new process reaches a healthy state.
 func (mc Controller) StartMonitor() (bool, error) {
 	status, err := mc.GetMonitorStatus()
 	if err != nil {
@@ -98,6 +104,7 @@ func (mc Controller) StartMonitor() (bool, error) {
 	return false, errors.New("monitor did not become ready in time")
 }
 
+// StopMonitor signals the worker to stop and returns true when a running worker was targeted.
 func (mc Controller) StopMonitor() (bool, error) {
 	state, err := LoadState(mc.cfg.StatePath)
 	if err != nil {
@@ -138,6 +145,7 @@ func (mc Controller) StopMonitor() (bool, error) {
 	return true, nil
 }
 
+// GetMonitorStatus returns running, stale, or stopped status from the worker state file.
 func (mc Controller) GetMonitorStatus() (Status, error) {
 	state, err := LoadState(mc.cfg.StatePath)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"testing"
 )
 
+// TestLoadCreatesDefaultConfigInHomeDir verifies Load initializes config and directories.
 func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
@@ -46,6 +47,7 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	}
 }
 
+// TestLoadRejectsInvalidLogTimezone verifies invalid IANA time zones are rejected.
 func TestLoadRejectsInvalidLogTimezone(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)

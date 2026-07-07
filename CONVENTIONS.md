@@ -13,6 +13,9 @@ Shared coding and design rules for this repository live here. Keep this file as 
 ## Project rules
 
 - Keep the repository simple, modular, and test-driven.
+- Document every Go package, function, method, type, and package-level var or const with a brief comment; mention inputs and return values when they are not obvious from the name.
+- Package comments should summarize the package protocol, including required call sequencing, important conditions, and private/specialized entrypoints such as hidden CLI commands or worker methods.
+- Constructor comments should state required dependencies and lifecycle protocols; if a returned value owns resources, tell callers to call `Close`, usually with `defer value.Close()` immediately after checking the error.
 - Prefer small files, small functions, and public-interface tests.
 - Prefer independent unit tests with controlled dependencies; avoid integration tests unless cross-package or cross-module behavior is the explicit target.
 - Prefer standard library solutions over third-party dependencies unless there is strong justification.

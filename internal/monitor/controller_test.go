@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// TestControllerStartWaitsForHealthyState verifies StartMonitor waits for fresh worker state.
 func TestControllerStartWaitsForHealthyState(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
@@ -47,6 +48,7 @@ func TestControllerStartWaitsForHealthyState(t *testing.T) {
 	}
 }
 
+// TestControllerStopRemovesStateWhenWorkerDoesNotExit verifies StopMonitor force-cleans stale state.
 func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 0, 0, time.UTC)
@@ -96,6 +98,7 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 	}
 }
 
+// TestControllerStatusReportsStaleWorker verifies old heartbeats are reported as stale.
 func TestControllerStatusReportsStaleWorker(t *testing.T) {
 	dir := t.TempDir()
 	now := time.Date(2026, 7, 3, 12, 0, 10, 0, time.UTC)
@@ -135,6 +138,7 @@ func TestControllerStatusReportsStaleWorker(t *testing.T) {
 	}
 }
 
+// TestControllerStartReturnsErrorWhenSpawnerFails verifies spawn failures are returned.
 func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 	oldStart := startMonitorProcess
 	oldKill := killMonitorProcess
@@ -163,6 +167,7 @@ func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 	}
 }
 
+// TestNewControllerRequiresAllMinimalDependencies verifies required controller paths are enforced.
 func TestNewControllerRequiresAllMinimalDependencies(t *testing.T) {
 	_, err := NewController(ControllerConfig{})
 	if err == nil {

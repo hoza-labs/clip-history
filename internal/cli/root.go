@@ -1,3 +1,9 @@
+// Package cli implements the ch command tree and command-specific protocols.
+//
+// Protocol: Execute handles commands from os.Args; most commands load config and
+// create a logger that must be closed, while version/help return before logging.
+// The private "monitor" command is a hidden worker entrypoint spawned by "start"
+// and should not be exposed in help.
 package cli
 
 import (
@@ -8,12 +14,17 @@ import (
 	"github.com/hoza-labs/clip-history/internal/logging"
 )
 
+// commandLogger is the logging behavior required by command handlers.
 type commandLogger interface {
+	// Info records an informational message.
 	Info(string)
+	// Error records an error message.
 	Error(string)
+	// Debug records a debug message.
 	Debug(string)
 }
 
+// Execute runs the command named in os.Args and returns any command or setup error.
 func Execute() error {
 	if len(os.Args) < 2 {
 		return printRootHelp()
@@ -49,6 +60,7 @@ func Execute() error {
 	return nil
 }
 
+// runCommand dispatches command using logger, output, and cfg, returning an unknown-command error when needed.
 func runCommand(command string, logger commandLogger, output commandOutput, cfg config.Config) error {
 	switch command {
 	case "config":
@@ -74,6 +86,7 @@ func runCommand(command string, logger commandLogger, output commandOutput, cfg 
 	}
 }
 
+// printRootHelp writes the public command summary and returns nil.
 func printRootHelp() error {
 	fmt.Println("clip-history (ch)")
 	fmt.Println("")

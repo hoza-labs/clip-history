@@ -12,17 +12,23 @@ import (
 )
 
 const (
-	wmClose           = 0x0010
-	wmDestroy         = 0x0002
+	// wmClose asks the hidden monitor window to close.
+	wmClose = 0x0010
+	// wmDestroy indicates the hidden monitor window is being destroyed.
+	wmDestroy = 0x0002
+	// wmClipboardUpdate is delivered when the Windows clipboard contents change.
 	wmClipboardUpdate = 0x031D
-	hwndMessage       = ^uintptr(2)
+	// hwndMessage creates a message-only window for clipboard notifications.
+	hwndMessage = ^uintptr(2)
 )
 
+// point mirrors the Win32 POINT structure used inside msg.
 type point struct {
 	x int32
 	y int32
 }
 
+// msg mirrors the Win32 MSG structure read by the worker message loop.
 type msg struct {
 	hwnd    uintptr
 	message uint32
@@ -32,6 +38,7 @@ type msg struct {
 	pt      point
 }
 
+// wndClassEx mirrors the Win32 WNDCLASSEX structure used to register the worker window.
 type wndClassEx struct {
 	cbSize        uint32
 	style         uint32
@@ -48,27 +55,41 @@ type wndClassEx struct {
 }
 
 var (
-	user32                            = syscall.NewLazyDLL("user32.dll")
-	kernel32                          = syscall.NewLazyDLL("kernel32.dll")
-	procAddClipboardFormatListener    = user32.NewProc("AddClipboardFormatListener")
-	procCreateWindowExW               = user32.NewProc("CreateWindowExW")
-	procDefWindowProcW                = user32.NewProc("DefWindowProcW")
-	procDestroyWindow                 = user32.NewProc("DestroyWindow")
-	procDispatchMessageW              = user32.NewProc("DispatchMessageW")
-	procGetMessageW                   = user32.NewProc("GetMessageW")
-	procPostMessageW                  = user32.NewProc("PostMessageW")
-	procPostQuitMessage               = user32.NewProc("PostQuitMessage")
-	procRegisterClassExW              = user32.NewProc("RegisterClassExW")
+	// user32 loads clipboard and windowing procedures from user32.dll.
+	user32 = syscall.NewLazyDLL("user32.dll")
+	// kernel32 loads module-handle procedures from kernel32.dll.
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+	// procAddClipboardFormatListener registers a window for clipboard update notifications.
+	procAddClipboardFormatListener = user32.NewProc("AddClipboardFormatListener")
+	// procCreateWindowExW creates the hidden message-only worker window.
+	procCreateWindowExW = user32.NewProc("CreateWindowExW")
+	// procDefWindowProcW handles messages not processed by wndProc.
+	procDefWindowProcW = user32.NewProc("DefWindowProcW")
+	// procDestroyWindow destroys the hidden worker window.
+	procDestroyWindow = user32.NewProc("DestroyWindow")
+	// procDispatchMessageW dispatches messages to wndProc.
+	procDispatchMessageW = user32.NewProc("DispatchMessageW")
+	// procGetMessageW blocks until the worker receives the next window message.
+	procGetMessageW = user32.NewProc("GetMessageW")
+	// procPostMessageW posts a close message to the worker window.
+	procPostMessageW = user32.NewProc("PostMessageW")
+	// procPostQuitMessage exits the worker message loop.
+	procPostQuitMessage = user32.NewProc("PostQuitMessage")
+	// procRegisterClassExW registers the worker window class.
+	procRegisterClassExW = user32.NewProc("RegisterClassExW")
+	// procRemoveClipboardFormatListener unregisters clipboard notifications for the worker window.
 	procRemoveClipboardFormatListener = user32.NewProc("RemoveClipboardFormatListener")
-	procTranslateMessage              = user32.NewProc("TranslateMessage")
-	procGetModuleHandleW              = kernel32.NewProc("GetModuleHandleW")
-	monitorWindowProc                 = syscall.NewCallback(wndProc)
-	monitorWorkers                    sync.Map
+	// procTranslateMessage translates virtual-key messages before dispatch.
+	procTranslateMessage = user32.NewProc("TranslateMessage")
+	// procGetModuleHandleW returns the module handle for this process.
+	procGetModuleHandleW = kernel32.NewProc("GetModuleHandleW")
+	// monitorWindowProc is the syscall callback used by the hidden worker window.
+	monitorWindowProc = syscall.NewCallback(wndProc)
+	// monitorWorkers maps hidden window handles to worker instances for wndProc callbacks.
+	monitorWorkers sync.Map
 )
 
-// The worker struct represents a single instance of the clipboard monitor running in the
-// background. The worker has its own message window and listens for clipboard updates until
-// it receives a "stop" signal. We expect at most a single worker to be active at any time.
+// worker represents one clipboard monitor instance with its own hidden message window.
 type worker struct {
 	hwnd      uintptr
 	logger    workerLogger
@@ -77,14 +98,13 @@ type worker struct {
 	startedAt time.Time
 }
 
+// workerLogger is the logging behavior required by RunWorker.
 type workerLogger interface {
+	// Info records worker lifecycle and clipboard update messages.
 	Info(string)
 }
 
-// RunWorker is the entrypoint for the clipboard monitor worker process. It creates a message window
-// and enters a message loop, listening for clipboard updates until it receives a "stop" signal.
-// This function does not return until the worker is stopped, either by receiving a "stop" signal or
-// by an error occurring.
+// RunWorker creates the hidden clipboard listener and blocks until a stop signal or error occurs.
 func RunWorker(logger workerLogger, statePath, stopPath string) error {
 	if err := RemoveFile(stopPath); err != nil {
 		return fmt.Errorf("clear stop signal: %w", err)
@@ -181,6 +201,7 @@ func RunWorker(logger workerLogger, statePath, stopPath string) error {
 	}
 }
 
+// heartbeat refreshes the worker state file until done is closed or the stop file appears.
 func (w *worker) heartbeat(done <-chan struct{}) {
 	ticker := time.NewTicker(DefaultHeartbeatInterval)
 	defer ticker.Stop()
@@ -205,6 +226,7 @@ func (w *worker) heartbeat(done <-chan struct{}) {
 	}
 }
 
+// wndProc handles clipboard, close, and destroy messages for the hidden worker window.
 func wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	value, _ := monitorWorkers.Load(hwnd)
 	w, _ := value.(*worker)

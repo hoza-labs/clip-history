@@ -12,10 +12,15 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
+// stubLogger satisfies commandLogger without recording messages.
 type stubLogger struct{}
+
+// stubOutput captures printed command output.
 type stubOutput struct {
 	buffer bytes.Buffer
 }
+
+// stubMonitorController controls monitor command outcomes in tests.
 type stubMonitorController struct {
 	started bool
 	stopped bool
@@ -23,31 +28,44 @@ type stubMonitorController struct {
 	err     error
 }
 
-func (stubLogger) Info(string)  {}
+// Info ignores informational messages.
+func (stubLogger) Info(string) {}
+
+// Error ignores error messages.
 func (stubLogger) Error(string) {}
+
+// Debug ignores debug messages.
 func (stubLogger) Debug(string) {}
+
+// Close returns nil for compatibility with closeable logger tests.
 func (stubLogger) Close() error { return nil }
 
+// Printf records formatted output.
 func (s *stubOutput) Printf(format string, args ...any) {
 	s.buffer.WriteString(fmt.Sprintf(format, args...))
 }
 
+// Println records line output.
 func (s *stubOutput) Println(args ...any) {
 	s.buffer.WriteString(fmt.Sprintln(args...))
 }
 
+// StartMonitor returns the configured start result.
 func (s stubMonitorController) StartMonitor() (bool, error) {
 	return s.started, s.err
 }
 
+// StopMonitor returns the configured stop result.
 func (s stubMonitorController) StopMonitor() (bool, error) {
 	return s.stopped, s.err
 }
 
+// GetMonitorStatus returns the configured monitor status.
 func (s stubMonitorController) GetMonitorStatus() (monitor.Status, error) {
 	return s.status, s.err
 }
 
+// TestRunStartCommandPrintsStarted verifies start reports a newly started monitor.
 func TestRunStartCommandPrintsStarted(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
@@ -66,6 +84,7 @@ func TestRunStartCommandPrintsStarted(t *testing.T) {
 	}
 }
 
+// TestRunStopCommandPrintsStopped verifies stop reports a stopped monitor.
 func TestRunStopCommandPrintsStopped(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	if err := monitor.SaveState(cfg.MonitorStatePath, monitor.State{
@@ -92,6 +111,7 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 	}
 }
 
+// TestRunStatusCommandPrintsRunning verifies status reports a running monitor PID.
 func TestRunStatusCommandPrintsRunning(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
@@ -112,6 +132,7 @@ func TestRunStatusCommandPrintsRunning(t *testing.T) {
 	}
 }
 
+// TestRunMonitorCommandDelegatesToClipboardRunner verifies the hidden command invokes the worker.
 func TestRunMonitorCommandDelegatesToClipboardRunner(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldRunner := runMonitorWorker
@@ -133,6 +154,7 @@ func TestRunMonitorCommandDelegatesToClipboardRunner(t *testing.T) {
 	}
 }
 
+// TestRunStartCommandReturnsServiceError verifies start propagates controller errors.
 func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
@@ -147,6 +169,7 @@ func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	}
 }
 
+// TestRunStartCommandReturnsControllerConstructorError verifies start propagates constructor errors.
 func TestRunStartCommandReturnsControllerConstructorError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController

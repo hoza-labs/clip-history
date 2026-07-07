@@ -1,3 +1,7 @@
+// Package config loads, writes, normalizes, and validates the user's JSON configuration.
+//
+// Protocol: callers should use Load before commands that need filesystem paths; Load
+// creates a default config file and required directories when they do not exist.
 package config
 
 import (
@@ -9,6 +13,7 @@ import (
 	"time"
 )
 
+// Config describes all persistent paths and settings used by clip-history.
 type Config struct {
 	Path             string `json:"path"`
 	HomeDir          string `json:"home_dir"`
@@ -22,6 +27,7 @@ type Config struct {
 	SaveSensitive    bool   `json:"save_sensitive"`
 }
 
+// Default returns a complete Config rooted under homeDir, or "." when homeDir is empty.
 func Default(homeDir string) Config {
 	if homeDir == "" {
 		homeDir = "."
@@ -42,6 +48,7 @@ func Default(homeDir string) Config {
 	}
 }
 
+// Load returns the normalized user Config, creating the config file and directories as needed.
 func Load() (Config, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil || homeDir == "" {
@@ -85,6 +92,7 @@ func Load() (Config, error) {
 	return cfg, nil
 }
 
+// normalize fills empty fields in cfg with defaults derived from homeDir and returns the result.
 func normalize(cfg Config, homeDir string) Config {
 	defaults := Default(homeDir)
 
@@ -119,6 +127,7 @@ func normalize(cfg Config, homeDir string) Config {
 	return cfg
 }
 
+// validate returns an error when cfg contains unsupported or malformed values.
 func validate(cfg Config) error {
 	if cfg.LogTimezone != "local" {
 		if _, err := time.LoadLocation(cfg.LogTimezone); err != nil {
@@ -129,6 +138,7 @@ func validate(cfg Config) error {
 	return nil
 }
 
+// ensureDirectories creates the directories required by cfg.
 func ensureDirectories(cfg Config) error {
 	if err := os.MkdirAll(cfg.HistoryDir, 0o755); err != nil {
 		return fmt.Errorf("create history directory: %w", err)

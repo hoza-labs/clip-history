@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestCurrentReadsVersionFile verifies Current finds VERSION in an ancestor directory.
 func TestCurrentReadsVersionFile(t *testing.T) {
 	oldDir, err := os.Getwd()
 	if err != nil {
@@ -35,6 +36,7 @@ func TestCurrentReadsVersionFile(t *testing.T) {
 	}
 }
 
+// TestCurrentPrefersBuildVersion verifies injected release versions override VERSION files.
 func TestCurrentPrefersBuildVersion(t *testing.T) {
 	buildVersion = "1.2.3"
 	t.Cleanup(func() { buildVersion = "" })

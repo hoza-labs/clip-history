@@ -9,6 +9,7 @@ import (
 	"testing"
 )
 
+// TestExecuteShowsHelpWithoutCommand verifies Execute prints help with no args.
 func TestExecuteShowsHelpWithoutCommand(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 
@@ -34,6 +35,7 @@ func TestExecuteShowsHelpWithoutCommand(t *testing.T) {
 	}
 }
 
+// TestExecuteShowsVersion verifies Execute handles version before loading config.
 func TestExecuteShowsVersion(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	oldCurrentVersion := currentVersion
@@ -63,6 +65,7 @@ func TestExecuteShowsVersion(t *testing.T) {
 	}
 }
 
+// TestExecuteLogsCommandErrors verifies Execute records command failures.
 func TestExecuteLogsCommandErrors(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

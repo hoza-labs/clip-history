@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestRunDoesNothingWhenExecuteSucceeds verifies run leaves stderr and exit untouched on success.
 func TestRunDoesNothingWhenExecuteSucceeds(t *testing.T) {
 	var stderr bytes.Buffer
 	exitCode := -1
@@ -25,6 +26,7 @@ func TestRunDoesNothingWhenExecuteSucceeds(t *testing.T) {
 	}
 }
 
+// TestRunPrintsErrorAndExitsNonZeroWhenExecuteFails verifies run reports command failures.
 func TestRunPrintsErrorAndExitsNonZeroWhenExecuteFails(t *testing.T) {
 	var stderr bytes.Buffer
 	exitCode := -1

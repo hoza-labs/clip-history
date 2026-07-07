@@ -1,3 +1,8 @@
+// Package logging writes date-stamped command logs with retention cleanup.
+//
+// Protocol: create a Logger with NewLogger, check the error, then call
+// defer logger.Close() immediately so the underlying file handle is released.
+// Logger methods are safe for concurrent use and ignore writes after Close.
 package logging
 
 import (
@@ -9,14 +14,20 @@ import (
 	"time"
 )
 
+// logFileDateLayout formats the date embedded in log file names.
 const logFileDateLayout = "2006-01-02"
+
+// logTimestampLayout formats timestamps written at the start of each log entry.
 const logTimestampLayout = "2006-01-02T15:04:05.000Z07:00"
 
 var (
+	// logFilePattern matches managed clip-history log files and captures their date.
 	logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
-	now            = time.Now
+	// now is replaceable in tests and returns the current time.
+	now = time.Now
 )
 
+// Logger writes timestamped entries to a daily log file.
 type Logger struct {
 	dir           string
 	retentionDays int
@@ -28,6 +39,7 @@ type Logger struct {
 	closed        bool
 }
 
+// NewLogger opens a Logger for dir and title; callers must call Close, usually with defer.
 func NewLogger(dir string, retentionDays int, timezone string, title string) (*Logger, error) {
 	if dir == "" {
 		return nil, fmt.Errorf("log directory is required")
@@ -52,6 +64,7 @@ func NewLogger(dir string, retentionDays int, timezone string, title string) (*L
 	return logger, nil
 }
 
+// resolveLocation returns the configured time zone, treating "" and "local" as time.Local.
 func resolveLocation(timezone string) (*time.Location, error) {
 	if timezone == "" || timezone == "local" {
 		return time.Local, nil
@@ -64,6 +77,7 @@ func resolveLocation(timezone string) (*time.Location, error) {
 	return location, nil
 }
 
+// removeExpiredLogs deletes managed logs older than retentionDays in location.
 func removeExpiredLogs(dir string, retentionDays int, location *time.Location) error {
 	if retentionDays < 0 {
 		return fmt.Errorf("log retention days must be non-negative")
@@ -100,23 +114,28 @@ func removeExpiredLogs(dir string, retentionDays int, location *time.Location) e
 	return nil
 }
 
+// beginningOfDay returns t truncated to midnight in t's location.
 func beginningOfDay(t time.Time) time.Time {
 	year, month, day := t.Date()
 	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }
 
+// Info writes message at INFO level.
 func (l *Logger) Info(message string) {
 	l.write("INFO", message)
 }
 
+// Error writes message at ERROR level.
 func (l *Logger) Error(message string) {
 	l.write("ERROR", message)
 }
 
+// Debug writes message at DEBUG level.
 func (l *Logger) Debug(message string) {
 	l.write("DEBUG", message)
 }
 
+// Close releases the current log file and returns any close error.
 func (l *Logger) Close() error {
 	if l == nil {
 		return nil
@@ -133,6 +152,7 @@ func (l *Logger) Close() error {
 	return err
 }
 
+// write appends message at level, rotating the log file when the local date changes.
 func (l *Logger) write(level, message string) {
 	if l == nil {
 		return
@@ -159,6 +179,7 @@ func (l *Logger) write(level, message string) {
 	_, _ = l.file.WriteString(line)
 }
 
+// rotate opens the log file for date and closes the previous file if one was open.
 func (l *Logger) rotate(date string) error {
 	if err := removeExpiredLogs(l.dir, l.retentionDays, l.location); err != nil {
 		return err

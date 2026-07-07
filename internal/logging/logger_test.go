@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// TestNewLoggerCreatesLogFile verifies construction opens the current daily log.
 func TestNewLoggerCreatesLogFile(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
@@ -27,6 +28,7 @@ func TestNewLoggerCreatesLogFile(t *testing.T) {
 	logger.Info("hello")
 }
 
+// TestLoggerWritesTimestampPIDLevelAndMessage verifies log entry formatting.
 func TestLoggerWritesTimestampPIDLevelAndMessage(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
@@ -51,6 +53,7 @@ func TestLoggerWritesTimestampPIDLevelAndMessage(t *testing.T) {
 	}
 }
 
+// TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances verifies concurrent files stay line-oriented.
 func TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
@@ -90,6 +93,7 @@ func TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances(t *testing.T) {
 	}
 }
 
+// TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention verifies retention cleanup is scoped.
 func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -123,6 +127,7 @@ func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 	}
 }
 
+// TestNewLoggerRejectsNegativeRetention verifies negative retention is invalid.
 func TestNewLoggerRejectsNegativeRetention(t *testing.T) {
 	_, err := NewLogger(filepath.Join(t.TempDir(), "logs"), -1, "local", "test")
 	if err == nil {
@@ -130,6 +135,7 @@ func TestNewLoggerRejectsNegativeRetention(t *testing.T) {
 	}
 }
 
+// TestLoggerUsesConfiguredTimezoneForFileAndEntries verifies time zone affects names and entries.
 func TestLoggerUsesConfiguredTimezoneForFileAndEntries(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	freezeTime(t, time.Date(2026, 7, 6, 6, 30, 0, 0, time.UTC))
@@ -151,6 +157,7 @@ func TestLoggerUsesConfiguredTimezoneForFileAndEntries(t *testing.T) {
 	}
 }
 
+// TestNewLoggerRejectsInvalidTimezone verifies bad time zone names fail construction.
 func TestNewLoggerRejectsInvalidTimezone(t *testing.T) {
 	_, err := NewLogger(filepath.Join(t.TempDir(), "logs"), 14, "Not/AZone", "test")
 	if err == nil {
@@ -158,6 +165,7 @@ func TestNewLoggerRejectsInvalidTimezone(t *testing.T) {
 	}
 }
 
+// TestLoggerRotatesFilesAndRunsRetentionWhenDateChanges verifies midnight rotation and cleanup.
 func TestLoggerRotatesFilesAndRunsRetentionWhenDateChanges(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -202,6 +210,7 @@ func TestLoggerRotatesFilesAndRunsRetentionWhenDateChanges(t *testing.T) {
 	assertMissing(t, filepath.Join(dir, expiredLog))
 }
 
+// freezeTime replaces now with value until the test cleanup runs.
 func freezeTime(t *testing.T, value time.Time) {
 	t.Helper()
 	oldNow := now
@@ -209,6 +218,7 @@ func freezeTime(t *testing.T, value time.Time) {
 	t.Cleanup(func() { now = oldNow })
 }
 
+// assertExists fails the test when path does not exist.
 func assertExists(t *testing.T, path string) {
 	t.Helper()
 	if _, err := os.Stat(path); err != nil {
@@ -216,6 +226,7 @@ func assertExists(t *testing.T, path string) {
 	}
 }
 
+// assertMissing fails the test when path exists.
 func assertMissing(t *testing.T, path string) {
 	t.Helper()
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
@@ -223,6 +234,7 @@ func assertMissing(t *testing.T, path string) {
 	}
 }
 
+// logFileName returns the managed log file name for t's date.
 func logFileName(t time.Time) string {
 	return "clip-history-" + t.Format(logFileDateLayout) + ".log"
 }
