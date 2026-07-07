@@ -39,7 +39,7 @@ func Execute() error {
 
 	logger.Info("clip-history entry")
 
-	err = runCommand(os.Args[1], logger, cfg)
+	err = runCommand(os.Args[1], logger, newLoggedOutput(logger), cfg)
 	if err != nil {
 		logger.Error(err.Error())
 		return err
@@ -49,22 +49,22 @@ func Execute() error {
 	return nil
 }
 
-func runCommand(command string, logger commandLogger, cfg config.Config) error {
+func runCommand(command string, logger commandLogger, output commandOutput, cfg config.Config) error {
 	switch command {
 	case "config":
-		return runConfigCommand(logger, cfg)
+		return runConfigCommand(logger, output, cfg)
 	case "start":
 		// this is the public command that causes the Controller to spawn a separate
 		// instance of the program to run in the background until told to stop.
-		return runStartCommand(logger, cfg)
+		return runStartCommand(logger, output, cfg)
 	case "stop":
 		// this is the public command that causes the Controller to send a "stop" signal
 		// to the clipboard monitor (the separate instance running in the background).
-		return runStopCommand(logger, cfg)
+		return runStopCommand(logger, output, cfg)
 	case "status":
 		// this is the public command that causes the Controller to obtain the current status
 		// of the clipboard monitor (the separate instance running in the background).
-		return runStatusCommand(logger, cfg)
+		return runStatusCommand(logger, output, cfg)
 	case "monitor":
 		// This is a "hidden" command that actually runs the clipboard monitor in the background.
 		// It does not return until it receives a "stop" external signal.

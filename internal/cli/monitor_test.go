@@ -3,8 +3,7 @@ package cli
 import (
 	"bytes"
 	"errors"
-	"io"
-	"os"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +13,9 @@ import (
 )
 
 type stubLogger struct{}
+type stubOutput struct {
+	buffer bytes.Buffer
+}
 type stubMonitorController struct {
 	started bool
 	stopped bool
@@ -25,6 +27,14 @@ func (stubLogger) Info(string)  {}
 func (stubLogger) Error(string) {}
 func (stubLogger) Debug(string) {}
 func (stubLogger) Close() error { return nil }
+
+func (s *stubOutput) Printf(format string, args ...any) {
+	s.buffer.WriteString(fmt.Sprintf(format, args...))
+}
+
+func (s *stubOutput) Println(args ...any) {
+	s.buffer.WriteString(fmt.Sprintln(args...))
+}
 
 func (s stubMonitorController) StartMonitor() (bool, error) {
 	return s.started, s.err
@@ -46,11 +56,12 @@ func TestRunStartCommandPrintsStarted(t *testing.T) {
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
 
-	output := captureStdout(t, func() error {
-		return runStartCommand(stubLogger{}, cfg)
-	})
+	output := &stubOutput{}
+	if err := runStartCommand(stubLogger{}, output, cfg); err != nil {
+		t.Fatalf("runStartCommand() error = %v", err)
+	}
 
-	if got := strings.TrimSpace(output); got != "Clipboard monitoring started." {
+	if got := strings.TrimSpace(output.buffer.String()); got != "Clipboard monitoring started." {
 		t.Fatalf("start output = %q, want %q", got, "Clipboard monitoring started.")
 	}
 }
@@ -71,11 +82,12 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
 
-	output := captureStdout(t, func() error {
-		return runStopCommand(stubLogger{}, cfg)
-	})
+	output := &stubOutput{}
+	if err := runStopCommand(stubLogger{}, output, cfg); err != nil {
+		t.Fatalf("runStopCommand() error = %v", err)
+	}
 
-	if got := strings.TrimSpace(output); got != "Clipboard monitoring stopped." {
+	if got := strings.TrimSpace(output.buffer.String()); got != "Clipboard monitoring stopped." {
 		t.Fatalf("stop output = %q, want %q", got, "Clipboard monitoring stopped.")
 	}
 }
@@ -90,12 +102,13 @@ func TestRunStatusCommandPrintsRunning(t *testing.T) {
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
 
-	output := captureStdout(t, func() error {
-		return runStatusCommand(stubLogger{}, cfg)
-	})
+	output := &stubOutput{}
+	if err := runStatusCommand(stubLogger{}, output, cfg); err != nil {
+		t.Fatalf("runStatusCommand() error = %v", err)
+	}
 
-	if !strings.Contains(output, "Clipboard monitoring: running (pid 99)") {
-		t.Fatalf("status output = %q, want running pid line", output)
+	if !strings.Contains(output.buffer.String(), "Clipboard monitoring: running (pid 99)") {
+		t.Fatalf("status output = %q, want running pid line", output.buffer.String())
 	}
 }
 
@@ -128,7 +141,7 @@ func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
 
-	err := runStartCommand(stubLogger{}, cfg)
+	err := runStartCommand(stubLogger{}, &stubOutput{}, cfg)
 	if err == nil || err.Error() != "boom" {
 		t.Fatalf("runStartCommand() error = %v, want boom", err)
 	}
@@ -142,27 +155,8 @@ func TestRunStartCommandReturnsControllerConstructorError(t *testing.T) {
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
 
-	err := runStartCommand(stubLogger{}, cfg)
+	err := runStartCommand(stubLogger{}, &stubOutput{}, cfg)
 	if err == nil || err.Error() != "bad constructor" {
 		t.Fatalf("runStartCommand() error = %v, want bad constructor", err)
 	}
-}
-
-func captureStdout(t *testing.T, fn func() error) string {
-	t.Helper()
-
-	oldStdout := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	t.Cleanup(func() { os.Stdout = oldStdout })
-
-	err := fn()
-	_ = w.Close()
-	if err != nil {
-		t.Fatalf("function error = %v", err)
-	}
-
-	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
-	return buf.String()
 }

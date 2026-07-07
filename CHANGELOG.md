@@ -9,6 +9,7 @@
 - Added configurable log time zones with a default of local time.
 - Added automatic logger rotation at midnight with retention cleanup on rotation.
 - Added millisecond log timestamps and command titles to log entries.
+- Added shared CLI output handling that writes command output to stdout and logs it.
 - Added initial BDD-style unit tests for the public module behavior.
 - Added `ch version` and a single source of truth for the target semver release.
 - Added a documented GitHub release workflow driven by `scripts/create-release.sh`.

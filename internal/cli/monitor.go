@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/hoza-labs/clip-history/internal/config"
@@ -26,7 +25,7 @@ var runMonitorWorker = func(logger commandLogger, cfg config.Config) error {
 	return monitor.RunWorker(logger, cfg.MonitorStatePath, cfg.MonitorStopPath)
 }
 
-func runStartCommand(logger commandLogger, cfg config.Config) error {
+func runStartCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running start command")
 
 	controller, err := newMonitorController(cfg)
@@ -39,16 +38,15 @@ func runStartCommand(logger commandLogger, cfg config.Config) error {
 	}
 	if !started {
 		msg := "Clipboard monitoring is already running."
-		logger.Info(msg)
-		fmt.Println(msg)
+		output.Println(msg)
 		return nil
 	}
 
-	fmt.Println("Clipboard monitoring started.")
+	output.Println("Clipboard monitoring started.")
 	return nil
 }
 
-func runStopCommand(logger commandLogger, cfg config.Config) error {
+func runStopCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running stop command")
 
 	controller, err := newMonitorController(cfg)
@@ -60,15 +58,15 @@ func runStopCommand(logger commandLogger, cfg config.Config) error {
 		return err
 	}
 	if !stopped {
-		fmt.Println("Clipboard monitoring is not running.")
+		output.Println("Clipboard monitoring is not running.")
 		return nil
 	}
 
-	fmt.Println("Clipboard monitoring stopped.")
+	output.Println("Clipboard monitoring stopped.")
 	return nil
 }
 
-func runStatusCommand(logger commandLogger, cfg config.Config) error {
+func runStatusCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running status command")
 
 	controller, err := newMonitorController(cfg)
@@ -80,9 +78,9 @@ func runStatusCommand(logger commandLogger, cfg config.Config) error {
 		return err
 	}
 
-	fmt.Printf("Clipboard history directory: %s\n", cfg.HistoryDir)
+	output.Printf("Clipboard history directory: %s\n", cfg.HistoryDir)
 	if status.Running {
-		fmt.Printf("Clipboard monitoring: running (pid %d)\n", status.PID)
+		output.Printf("Clipboard monitoring: running (pid %d)\n", status.PID)
 		return nil
 	}
 
@@ -91,7 +89,7 @@ func runStatusCommand(logger commandLogger, cfg config.Config) error {
 		_ = os.Remove(cfg.MonitorStopPath)
 	}
 
-	fmt.Println("Clipboard monitoring: stopped")
+	output.Println("Clipboard monitoring: stopped")
 	return nil
 }
 
