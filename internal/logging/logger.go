@@ -17,9 +17,13 @@ var (
 )
 
 type Logger struct {
-	file     *os.File
-	location *time.Location
-	mu       sync.Mutex
+	dir           string
+	retentionDays int
+	file          *os.File
+	currentDate   string
+	location      *time.Location
+	mu            sync.Mutex
+	closed        bool
 }
 
 func NewLogger(dir string, retentionDays int, timezone string) (*Logger, error) {
@@ -33,17 +37,16 @@ func NewLogger(dir string, retentionDays int, timezone string) (*Logger, error) 
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("create log dir: %w", err)
 	}
-	if err := removeExpiredLogs(dir, retentionDays, location); err != nil {
+	logger := &Logger{
+		dir:           dir,
+		retentionDays: retentionDays,
+		location:      location,
+	}
+	if err := logger.rotate(now().In(location).Format(logFileDateLayout)); err != nil {
 		return nil, err
 	}
 
-	path := filepath.Join(dir, fmt.Sprintf("clip-history-%s.log", now().In(location).Format(logFileDateLayout)))
-	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return nil, fmt.Errorf("open log file: %w", err)
-	}
-
-	return &Logger{file: file, location: location}, nil
+	return logger, nil
 }
 
 func resolveLocation(timezone string) (*time.Location, error) {
@@ -112,26 +115,64 @@ func (l *Logger) Debug(message string) {
 }
 
 func (l *Logger) Close() error {
-	if l.file == nil {
+	if l == nil {
 		return nil
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return l.file.Close()
+	if l.file == nil {
+		l.closed = true
+		return nil
+	}
+	err := l.file.Close()
+	l.file = nil
+	l.closed = true
+	return err
 }
 
 func (l *Logger) write(level, message string) {
-	if l == nil || l.file == nil {
+	if l == nil {
 		return
 	}
 	location := l.location
 	if location == nil {
 		location = time.Local
 	}
-	timestamp := now().In(location).Format(time.RFC3339)
+	currentTime := now().In(location)
+	timestamp := currentTime.Format(time.RFC3339)
+	date := currentTime.Format(logFileDateLayout)
 	line := fmt.Sprintf("%s [%7d] [%-5s] %s\n", timestamp, os.Getpid(), level, message)
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.closed {
+		return
+	}
+	if date != l.currentDate {
+		if err := l.rotate(date); err != nil {
+			_, _ = l.file.WriteString(fmt.Sprintf("%s [%7d] [ERROR] rotate log file: %v\n", timestamp, os.Getpid(), err))
+		}
+	}
 	_, _ = l.file.WriteString(line)
+}
+
+func (l *Logger) rotate(date string) error {
+	if err := removeExpiredLogs(l.dir, l.retentionDays, l.location); err != nil {
+		return err
+	}
+
+	path := filepath.Join(l.dir, fmt.Sprintf("clip-history-%s.log", date))
+	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	if err != nil {
+		return fmt.Errorf("open log file: %w", err)
+	}
+
+	oldFile := l.file
+	l.file = file
+	l.currentDate = date
+	if oldFile != nil {
+		_ = oldFile.Close()
+	}
+
+	return nil
 }

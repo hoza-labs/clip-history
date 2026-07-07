@@ -19,7 +19,7 @@ func TestNewLoggerCreatesLogFile(t *testing.T) {
 	}
 	defer logger.Close()
 
-	logPath := filepath.Join(dir, "clip-history-2026-06-07.log")
+	logPath := filepath.Join(dir, logFileName(time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local)))
 	if _, err := os.Stat(logPath); err != nil {
 		t.Fatalf("expected log file to exist: %v", err)
 	}
@@ -39,7 +39,7 @@ func TestLoggerWritesTimestampPIDLevelAndMessage(t *testing.T) {
 
 	logger.Error("boom")
 
-	data, err := os.ReadFile(filepath.Join(dir, "clip-history-2026-06-07.log"))
+	data, err := os.ReadFile(filepath.Join(dir, logFileName(time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))))
 	if err != nil {
 		t.Fatalf("read log file: %v", err)
 	}
@@ -72,7 +72,7 @@ func TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances(t *testing.T) {
 		second.Error("second")
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "clip-history-2026-06-07.log"))
+	data, err := os.ReadFile(filepath.Join(dir, logFileName(time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))))
 	if err != nil {
 		t.Fatalf("read log file: %v", err)
 	}
@@ -98,12 +98,12 @@ func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 	freezeTime(t, time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))
 
 	files := []string{
-		"clip-history-2026-20-06.log",
-		"clip-history-2026-22-06.log",
-		"clip-history-2026-06-07.log",
+		logFileName(time.Date(2026, 6, 20, 12, 0, 0, 0, time.Local)),
+		logFileName(time.Date(2026, 6, 22, 12, 0, 0, 0, time.Local)),
+		logFileName(time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local)),
 		"clip-history.log",
-		"clip-history-2026-20-06.txt",
-		"other-2026-20-06.log",
+		strings.TrimSuffix(logFileName(time.Date(2026, 6, 20, 12, 0, 0, 0, time.Local)), ".log") + ".txt",
+		"other-2026-06-20.log",
 	}
 	for _, name := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(name), 0o644); err != nil {
@@ -117,7 +117,7 @@ func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 	}
 	defer logger.Close()
 
-	assertMissing(t, filepath.Join(dir, "clip-history-2026-20-06.log"))
+	assertMissing(t, filepath.Join(dir, logFileName(time.Date(2026, 6, 20, 12, 0, 0, 0, time.Local))))
 	for _, name := range files[1:] {
 		assertExists(t, filepath.Join(dir, name))
 	}
@@ -142,7 +142,7 @@ func TestLoggerUsesConfiguredTimezoneForFileAndEntries(t *testing.T) {
 
 	logger.Info("hello")
 
-	data, err := os.ReadFile(filepath.Join(dir, "clip-history-2026-05-07.log"))
+	data, err := os.ReadFile(filepath.Join(dir, logFileName(time.Date(2026, 7, 5, 23, 30, 0, 0, time.FixedZone("PDT", -7*60*60)))))
 	if err != nil {
 		t.Fatalf("read log file: %v", err)
 	}
@@ -156,6 +156,50 @@ func TestNewLoggerRejectsInvalidTimezone(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected NewLogger to reject invalid timezone")
 	}
+}
+
+func TestLoggerRotatesFilesAndRunsRetentionWhenDateChanges(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "logs")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("create log dir: %v", err)
+	}
+
+	currentTime := time.Date(2026, 7, 6, 23, 59, 59, 0, time.Local)
+	oldNow := now
+	now = func() time.Time { return currentTime }
+	t.Cleanup(func() { now = oldNow })
+
+	expiredLog := logFileName(time.Date(2026, 7, 5, 12, 0, 0, 0, time.Local))
+	if err := os.WriteFile(filepath.Join(dir, expiredLog), []byte("old"), 0o644); err != nil {
+		t.Fatalf("write expired log: %v", err)
+	}
+
+	logger, err := NewLogger(dir, 1, "local")
+	if err != nil {
+		t.Fatalf("NewLogger returned error: %v", err)
+	}
+	defer logger.Close()
+
+	logger.Info("before midnight")
+	currentTime = time.Date(2026, 7, 7, 0, 0, 1, 0, time.Local)
+	logger.Info("after midnight")
+
+	beforeData, err := os.ReadFile(filepath.Join(dir, logFileName(time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))))
+	if err != nil {
+		t.Fatalf("read pre-rotation log: %v", err)
+	}
+	if !strings.Contains(string(beforeData), "before midnight") {
+		t.Fatalf("pre-rotation log = %q, want before midnight entry", string(beforeData))
+	}
+
+	afterData, err := os.ReadFile(filepath.Join(dir, logFileName(time.Date(2026, 7, 7, 12, 0, 0, 0, time.Local))))
+	if err != nil {
+		t.Fatalf("read rotated log: %v", err)
+	}
+	if !strings.Contains(string(afterData), "after midnight") {
+		t.Fatalf("rotated log = %q, want after midnight entry", string(afterData))
+	}
+	assertMissing(t, filepath.Join(dir, expiredLog))
 }
 
 func freezeTime(t *testing.T, value time.Time) {
@@ -177,4 +221,8 @@ func assertMissing(t *testing.T, path string) {
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		t.Fatalf("expected %s to be removed, stat err = %v", filepath.Base(path), err)
 	}
+}
+
+func logFileName(t time.Time) string {
+	return "clip-history-" + t.Format(logFileDateLayout) + ".log"
 }

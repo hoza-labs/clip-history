@@ -13,4 +13,4 @@
 
 ## Configuration
 
-The application stores its config, logs, and monitor runtime state in a directory named `.clip-history` beneath the user's home directory. Logs are written as `clip-history-{yyyy-dd-mm}.log` and matching old log files are removed after `log_retention_days`. Log timestamps and file dates use `log_timezone`, which defaults to `local`; other values must be valid Go time zone names such as `America/Los_Angeles` or `UTC`.
+The application stores its config, logs, and monitor runtime state in a directory named `.clip-history` beneath the user's home directory. Logs are written as `clip-history-{yyyy-mm-dd}.log`, rotate automatically when the configured local date changes, and matching old log files are removed after `log_retention_days`. Log timestamps and file dates use `log_timezone`, which defaults to `local`; other values must be valid Go time zone names such as `America/Los_Angeles` or `UTC`.
