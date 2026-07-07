@@ -31,7 +31,7 @@ func Execute() error {
 		return err
 	}
 
-	logger, err := logging.NewLogger(cfg.LogDir, cfg.LogRetentionDays, cfg.LogTimezone)
+	logger, err := logging.NewLogger(cfg.LogDir, cfg.LogRetentionDays, cfg.LogTimezone, os.Args[1])
 	if err != nil {
 		return err
 	}

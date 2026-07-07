@@ -10,6 +10,7 @@ import (
 )
 
 const logFileDateLayout = "2006-01-02"
+const logTimestampLayout = "2006-01-02T15:04:05.000Z07:00"
 
 var (
 	logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
@@ -22,11 +23,12 @@ type Logger struct {
 	file          *os.File
 	currentDate   string
 	location      *time.Location
+	title         string
 	mu            sync.Mutex
 	closed        bool
 }
 
-func NewLogger(dir string, retentionDays int, timezone string) (*Logger, error) {
+func NewLogger(dir string, retentionDays int, timezone string, title string) (*Logger, error) {
 	if dir == "" {
 		return nil, fmt.Errorf("log directory is required")
 	}
@@ -41,6 +43,7 @@ func NewLogger(dir string, retentionDays int, timezone string) (*Logger, error) 
 		dir:           dir,
 		retentionDays: retentionDays,
 		location:      location,
+		title:         title,
 	}
 	if err := logger.rotate(now().In(location).Format(logFileDateLayout)); err != nil {
 		return nil, err
@@ -139,9 +142,9 @@ func (l *Logger) write(level, message string) {
 		location = time.Local
 	}
 	currentTime := now().In(location)
-	timestamp := currentTime.Format(time.RFC3339)
+	timestamp := currentTime.Format(logTimestampLayout)
 	date := currentTime.Format(logFileDateLayout)
-	line := fmt.Sprintf("%s [%7d] [%-5s] %s\n", timestamp, os.Getpid(), level, message)
+	line := fmt.Sprintf("%s [%7d] [%-10s] [%-5s] %s\n", timestamp, os.Getpid(), l.title, level, message)
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -150,7 +153,7 @@ func (l *Logger) write(level, message string) {
 	}
 	if date != l.currentDate {
 		if err := l.rotate(date); err != nil {
-			_, _ = l.file.WriteString(fmt.Sprintf("%s [%7d] [ERROR] rotate log file: %v\n", timestamp, os.Getpid(), err))
+			_, _ = l.file.WriteString(fmt.Sprintf("%s [%7d] [%-10s] [ERROR] rotate log file: %v\n", timestamp, os.Getpid(), l.title, err))
 		}
 	}
 	_, _ = l.file.WriteString(line)
