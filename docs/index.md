@@ -4,6 +4,8 @@ This site will host build, install, and usage guidance for clip-history.
 
 ## Getting started
 - Build locally with the script in [scripts/local-build.sh](../scripts/local-build.sh).
+- Rebuild and run commands during development with
+  [scripts/debug.sh](../scripts/debug.sh), especially for background monitoring.
 - Run the CLI with `go run ./cmd/ch --help`.
 
 ## Installation

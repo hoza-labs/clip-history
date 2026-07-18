@@ -24,7 +24,20 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 2. Run tests: `go test ./...`
 3. Build the binary: `go build ./cmd/ch`
 4. Check the current target release: `go run ./cmd/ch version`
-5. Start clipboard monitoring: `go run ./cmd/ch start`
+5. Build and start clipboard monitoring for debugging: `./scripts/debug.sh start`
+
+Use `scripts/debug.sh` when exercising the CLI during development:
+
+```bash
+./scripts/debug.sh <command> [arguments...]
+```
+
+The script runs the local build, creates `dist/ch.exe`, and forwards all of its
+arguments to that executable. If an earlier `dist/ch.exe` monitor is still
+running, the script stops it before rebuilding. This avoids the temporary-file
+cleanup errors caused by `go run ./cmd/ch start` on Windows. A background monitor
+continues running the code from its last build, so rerun the debug script after
+source changes when you want to test the updated monitor.
 
 ## Structure
 
