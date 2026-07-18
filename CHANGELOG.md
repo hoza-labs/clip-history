@@ -22,3 +22,4 @@
 - Renamed monitor lifecycle coordination to `Controller` and the long-running child process implementation to `Worker`.
 - Adopted Architecture Decision Records and documented the initial language, CLI, background worker, and worker coordination decisions.
 - Added a Go documentation convention and brief comments for packages, functions, methods, and package-level declarations.
+- Switched user configuration from JSON to TOML with mixed-case keys using the Pelletier go-toml v2 library.

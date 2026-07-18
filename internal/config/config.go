@@ -1,30 +1,31 @@
-// Package config loads, writes, normalizes, and validates the user's JSON configuration.
+// Package config loads, writes, normalizes, and validates the user's TOML configuration.
 //
 // Protocol: callers should use Load before commands that need filesystem paths; Load
 // creates a default config file and required directories when they do not exist.
 package config
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 // Config describes all persistent paths and settings used by clip-history.
 type Config struct {
-	Path             string `json:"path"`
-	HomeDir          string `json:"home_dir"`
-	HistoryDir       string `json:"history_dir"`
-	LogDir           string `json:"log_dir"`
-	RuntimeDir       string `json:"runtime_dir"`
-	MonitorStatePath string `json:"monitor_state_path"`
-	MonitorStopPath  string `json:"monitor_stop_path"`
-	LogRetentionDays int    `json:"log_retention_days"`
-	LogTimezone      string `json:"log_timezone"`
-	SaveSensitive    bool   `json:"save_sensitive"`
+	Path             string `toml:"path"`
+	HomeDir          string `toml:"homeDir"`
+	HistoryDir       string `toml:"historyDir"`
+	LogDir           string `toml:"logDir"`
+	RuntimeDir       string `toml:"runtimeDir"`
+	MonitorStatePath string `toml:"monitorStatePath"`
+	MonitorStopPath  string `toml:"monitorStopPath"`
+	LogRetentionDays int    `toml:"logRetentionDays"`
+	LogTimezone      string `toml:"logTimezone"`
+	SaveSensitive    bool   `toml:"saveSensitive"`
 }
 
 // Default returns a complete Config rooted under homeDir, or "." when homeDir is empty.
@@ -36,7 +37,7 @@ func Default(homeDir string) Config {
 	baseDir := filepath.Join(homeDir, ".clip-history")
 	return Config{
 		HomeDir:          homeDir,
-		Path:             filepath.Join(baseDir, "config.json"),
+		Path:             filepath.Join(baseDir, "config.toml"),
 		HistoryDir:       filepath.Join(baseDir, "history"),
 		LogDir:           filepath.Join(baseDir, "logs"),
 		RuntimeDir:       filepath.Join(baseDir, "run"),
@@ -68,11 +69,11 @@ func Load() (Config, error) {
 		if err != nil {
 			return Config{}, fmt.Errorf("read config: %w", err)
 		}
-		if err := json.Unmarshal(data, &cfg); err != nil {
+		if err := toml.Unmarshal(data, &cfg); err != nil {
 			return Config{}, fmt.Errorf("decode config: %w", err)
 		}
 	} else {
-		data, err := json.MarshalIndent(cfg, "", "  ")
+		data, err := toml.Marshal(cfg)
 		if err != nil {
 			return Config{}, fmt.Errorf("encode config: %w", err)
 		}

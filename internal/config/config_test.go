@@ -1,10 +1,12 @@
 package config
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+
+	"github.com/pelletier/go-toml/v2"
 )
 
 // TestLoadCreatesDefaultConfigInHomeDir verifies Load initializes config and directories.
@@ -33,8 +35,17 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 		t.Fatalf("expected runtime directory to exist: %v", err)
 	}
 
-	if filepath.Base(cfg.Path) != "config.json" {
+	if filepath.Base(cfg.Path) != "config.toml" {
 		t.Fatalf("unexpected config file name: %s", filepath.Base(cfg.Path))
+	}
+	data, err := os.ReadFile(cfg.Path)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	for _, key := range []string{"homeDir =", "historyDir =", "logDir =", "runtimeDir =", "monitorStatePath =", "monitorStopPath =", "logRetentionDays =", "logTimezone =", "saveSensitive ="} {
+		if !strings.Contains(string(data), key) {
+			t.Fatalf("config file missing TOML key %q:\n%s", key, string(data))
+		}
 	}
 	if filepath.Base(cfg.MonitorStatePath) != "monitor.json" {
 		t.Fatalf("unexpected monitor state file name: %s", filepath.Base(cfg.MonitorStatePath))
@@ -55,7 +66,7 @@ func TestLoadRejectsInvalidLogTimezone(t *testing.T) {
 
 	cfg := Default(dir)
 	cfg.LogTimezone = "Not/AZone"
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	data, err := toml.Marshal(cfg)
 	if err != nil {
 		t.Fatalf("encode config: %v", err)
 	}
