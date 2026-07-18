@@ -3,9 +3,20 @@ package monitor
 import (
 	"errors"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+// recordingControllerLogger captures controller lifecycle messages.
+type recordingControllerLogger struct {
+	messages []string
+}
+
+// Info records message.
+func (l *recordingControllerLogger) Info(message string) {
+	l.messages = append(l.messages, message)
+}
 
 // TestControllerStartWaitsForHealthyState verifies StartMonitor waits for fresh worker state.
 func TestControllerStartWaitsForHealthyState(t *testing.T) {
@@ -34,6 +45,7 @@ func TestControllerStartWaitsForHealthyState(t *testing.T) {
 		Sleep: func(d time.Duration) {
 			now = now.Add(d)
 		},
+		Logger: &recordingControllerLogger{},
 	})
 	if err != nil {
 		t.Fatalf("NewController() error = %v", err)
@@ -67,6 +79,7 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 		killMonitorProcess = oldKill
 	})
 
+	logger := &recordingControllerLogger{}
 	controller, err := NewController(ControllerConfig{
 		StatePath: statePath,
 		StopPath:  stopPath,
@@ -74,6 +87,7 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 		Sleep: func(d time.Duration) {
 			now = now.Add(d)
 		},
+		Logger: logger,
 	})
 	if err != nil {
 		t.Fatalf("NewController() error = %v", err)
@@ -95,6 +109,9 @@ func TestControllerStopRemovesStateWhenWorkerDoesNotExit(t *testing.T) {
 	}
 	if killedPID != 42 {
 		t.Fatalf("KillProcess() pid = %d, want %d", killedPID, 42)
+	}
+	if !strings.Contains(strings.Join(logger.messages, "\n"), "issuing kill command for pid 42") {
+		t.Fatalf("messages = %#v, want kill decision", logger.messages)
 	}
 }
 

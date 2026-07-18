@@ -69,7 +69,7 @@ func (s stubMonitorController) GetMonitorStatus() (monitor.Status, error) {
 func TestRunStartCommandPrintsStarted(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
-	newMonitorController = func(config.Config) (monitorController, error) {
+	newMonitorController = func(commandLogger, config.Config) (monitorController, error) {
 		return stubMonitorController{started: true}, nil
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
@@ -96,7 +96,7 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 	}
 
 	oldFactory := newMonitorController
-	newMonitorController = func(config.Config) (monitorController, error) {
+	newMonitorController = func(commandLogger, config.Config) (monitorController, error) {
 		return stubMonitorController{stopped: true}, nil
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
@@ -115,7 +115,7 @@ func TestRunStopCommandPrintsStopped(t *testing.T) {
 func TestRunStatusCommandPrintsRunning(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
-	newMonitorController = func(config.Config) (monitorController, error) {
+	newMonitorController = func(commandLogger, config.Config) (monitorController, error) {
 		return stubMonitorController{
 			status: monitor.Status{Running: true, PID: 99},
 		}, nil
@@ -158,7 +158,7 @@ func TestRunMonitorCommandDelegatesToClipboardRunner(t *testing.T) {
 func TestRunStartCommandReturnsServiceError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
-	newMonitorController = func(config.Config) (monitorController, error) {
+	newMonitorController = func(commandLogger, config.Config) (monitorController, error) {
 		return stubMonitorController{err: errors.New("boom")}, nil
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })
@@ -173,7 +173,7 @@ func TestRunStartCommandReturnsServiceError(t *testing.T) {
 func TestRunStartCommandReturnsControllerConstructorError(t *testing.T) {
 	cfg := config.Default(t.TempDir())
 	oldFactory := newMonitorController
-	newMonitorController = func(config.Config) (monitorController, error) {
+	newMonitorController = func(commandLogger, config.Config) (monitorController, error) {
 		return nil, errors.New("bad constructor")
 	}
 	t.Cleanup(func() { newMonitorController = oldFactory })

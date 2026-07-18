@@ -46,7 +46,8 @@ func TestLoggerWritesTimestampPIDLevelAndMessage(t *testing.T) {
 		t.Fatalf("read log file: %v", err)
 	}
 
-	line := strings.TrimSpace(string(data))
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	line := lines[len(lines)-1]
 	pattern := `^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[+-]\d{2}:\d{2}) \[\s{0,6}\d{1,}\] \[config\s{4}\] \[ERROR\] boom$`
 	if !regexp.MustCompile(pattern).MatchString(line) {
 		t.Fatalf("log line = %q, want timestamp [padded pid] level message", line)
@@ -81,12 +82,12 @@ func TestLoggerWritesCompleteLinesAcrossMultipleLoggerInstances(t *testing.T) {
 	}
 
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
-	if len(lines) != 50 {
-		t.Fatalf("line count = %d, want 50", len(lines))
+	if len(lines) != 54 {
+		t.Fatalf("line count = %d, want 54", len(lines))
 	}
 
 	pattern := regexp.MustCompile(`^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}(Z|[+-]\d{2}:\d{2}) \[\s{0,6}\d{1,}\] \[(first|second)\s{4,5}\] \[(INFO |ERROR)\] (first|second)$`)
-	for _, line := range lines {
+	for _, line := range lines[4:] {
 		if !pattern.MatchString(line) {
 			t.Fatalf("malformed log line = %q", line)
 		}
@@ -120,6 +121,14 @@ func TestNewLoggerRemovesOnlyMatchingLogsOlderThanRetention(t *testing.T) {
 		t.Fatalf("NewLogger returned error: %v", err)
 	}
 	defer logger.Close()
+
+	data, err := os.ReadFile(filepath.Join(dir, logFileName(time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local))))
+	if err != nil {
+		t.Fatalf("read log file: %v", err)
+	}
+	if !strings.Contains(string(data), "log retention cleanup triggered") || !strings.Contains(string(data), "removed expired log "+files[0]) {
+		t.Fatalf("cleanup log = %q, want trigger and removed file", string(data))
+	}
 
 	assertMissing(t, filepath.Join(dir, logFileName(time.Date(2026, 6, 20, 12, 0, 0, 0, time.Local))))
 	for _, name := range files[1:] {

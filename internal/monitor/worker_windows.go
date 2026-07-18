@@ -212,6 +212,7 @@ func (w *worker) heartbeat(done <-chan struct{}) {
 			return
 		case <-ticker.C:
 			if _, err := os.Stat(w.stopPath); err == nil {
+				w.logger.Info("stop signal detected; stopping clipboard monitor")
 				procPostMessageW.Call(w.hwnd, wmClose, 0, 0)
 				return
 			}

@@ -18,10 +18,11 @@ type monitorController interface {
 }
 
 // newMonitorController builds the controller used by start, stop, and status commands.
-var newMonitorController = func(cfg config.Config) (monitorController, error) {
+var newMonitorController = func(logger commandLogger, cfg config.Config) (monitorController, error) {
 	controller, err := monitor.NewController(monitor.ControllerConfig{
 		StatePath: cfg.MonitorStatePath,
 		StopPath:  cfg.MonitorStopPath,
+		Logger:    logger,
 	})
 	return controller, err
 }
@@ -35,7 +36,7 @@ var runMonitorWorker = func(logger commandLogger, cfg config.Config) error {
 func runStartCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running start command")
 
-	controller, err := newMonitorController(cfg)
+	controller, err := newMonitorController(logger, cfg)
 	if err != nil {
 		return err
 	}
@@ -57,7 +58,7 @@ func runStartCommand(logger commandLogger, output commandOutput, cfg config.Conf
 func runStopCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running stop command")
 
-	controller, err := newMonitorController(cfg)
+	controller, err := newMonitorController(logger, cfg)
 	if err != nil {
 		return err
 	}
@@ -78,7 +79,7 @@ func runStopCommand(logger commandLogger, output commandOutput, cfg config.Confi
 func runStatusCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running status command")
 
-	controller, err := newMonitorController(cfg)
+	controller, err := newMonitorController(logger, cfg)
 	if err != nil {
 		return err
 	}

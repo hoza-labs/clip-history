@@ -30,12 +30,25 @@ type ControllerConfig struct {
 	PollInterval     time.Duration
 	Now              func() time.Time
 	Sleep            func(time.Duration)
+	Logger           ControllerLogger
+}
+
+// ControllerLogger records lifecycle decisions made by Controller.
+type ControllerLogger interface {
+	// Info records an informational lifecycle message.
+	Info(string)
 }
 
 // Controller controls the separate long-running clipboard monitor process.
 type Controller struct {
 	cfg ControllerConfig
 }
+
+// discardControllerLogger ignores controller messages when no logger is configured.
+type discardControllerLogger struct{}
+
+// Info ignores message.
+func (discardControllerLogger) Info(string) {}
 
 // NewController validates cfg and returns a Controller; StatePath and StopPath are required.
 func NewController(cfg ControllerConfig) (Controller, error) {
@@ -63,6 +76,9 @@ func NewController(cfg ControllerConfig) (Controller, error) {
 	if cfg.Sleep == nil {
 		cfg.Sleep = time.Sleep
 	}
+	if cfg.Logger == nil {
+		cfg.Logger = discardControllerLogger{}
+	}
 
 	return Controller{cfg: cfg}, nil
 }
@@ -74,6 +90,7 @@ func (mc Controller) StartMonitor() (bool, error) {
 		return false, err
 	}
 	if status.Running {
+		mc.cfg.Logger.Info(fmt.Sprintf("monitor already running with pid %d; start not needed", status.PID))
 		return false, nil
 	}
 
@@ -87,11 +104,13 @@ func (mc Controller) StartMonitor() (bool, error) {
 	if err := startMonitorProcess(); err != nil {
 		return false, err
 	}
+	mc.cfg.Logger.Info("monitor process started; waiting for healthy state")
 
 	deadline := mc.cfg.Now().Add(mc.cfg.StartTimeout)
 	for mc.cfg.Now().Before(deadline) || mc.cfg.Now().Equal(deadline) {
 		status, err := mc.GetMonitorStatus()
 		if err == nil && status.Running {
+			mc.cfg.Logger.Info(fmt.Sprintf("started monitor is healthy and running with pid %d", status.PID))
 			return true, nil
 		}
 		if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -110,6 +129,7 @@ func (mc Controller) StopMonitor() (bool, error) {
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			_ = RemoveFile(mc.cfg.StopPath)
+			mc.cfg.Logger.Info("monitor state file not found; stop not needed")
 			return false, nil
 		}
 		return false, err
@@ -123,6 +143,7 @@ func (mc Controller) StopMonitor() (bool, error) {
 	for mc.cfg.Now().Before(deadline) || mc.cfg.Now().Equal(deadline) {
 		if _, err := os.Stat(mc.cfg.StatePath); errors.Is(err, os.ErrNotExist) {
 			_ = RemoveFile(mc.cfg.StopPath)
+			mc.cfg.Logger.Info("monitor state file disappeared after stop signal; monitor stopped cleanly")
 			return true, nil
 		}
 
@@ -130,6 +151,7 @@ func (mc Controller) StopMonitor() (bool, error) {
 	}
 
 	if state.PID > 0 {
+		mc.cfg.Logger.Info(fmt.Sprintf("monitor state file remained after stop timeout; issuing kill command for pid %d", state.PID))
 		if err := killMonitorProcess(state.PID); err != nil {
 			return true, err
 		}

@@ -2,6 +2,8 @@
 
 ## Unreleased (target: 0.0.1)
 
+- Added detailed lifecycle decision logging for monitor start, stop, worker shutdown, and log retention cleanup.
+
 - Scaffolded the initial Go CLI project structure.
 - Added config persistence under the user's home directory.
 - Added file-based logging and sensitivity filtering modules.
