@@ -186,6 +186,8 @@ func RunWorker(logger workerLogger, statePath, stopPath string) error {
 	logger.Info("clipboard monitor started")
 
 	var message msg
+	// Block for Windows messages until GetMessage reports an error (-1) or a
+	// quit message (0); otherwise translate and dispatch each message to wndProc.
 	for {
 		ret, _, getErr := procGetMessageW.Call(uintptr(unsafe.Pointer(&message)), 0, 0, 0)
 		switch int32(ret) {
@@ -195,6 +197,10 @@ func RunWorker(logger workerLogger, statePath, stopPath string) error {
 			logger.Info("clipboard monitor stopped")
 			return nil
 		default:
+			// TranslateMessage prepares any keyboard message, then DispatchMessageW
+			// invokes this process's registered wndProc callback for the window.
+			// The registered wndProc is literally `wndProc()`, defined shortly below.
+			// See also `syscall.NewCallback(wndProc)`, far above.
 			procTranslateMessage.Call(uintptr(unsafe.Pointer(&message)))
 			procDispatchMessageW.Call(uintptr(unsafe.Pointer(&message)))
 		}

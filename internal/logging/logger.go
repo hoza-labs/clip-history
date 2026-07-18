@@ -196,6 +196,9 @@ func (l *Logger) rotate(date string) error {
 		return fmt.Errorf("open log file: %w", err)
 	}
 
+	// Keep the previous file so a cleanup failure can restore it, or close it
+	// after rotation succeeds. The local logInfo callback lets retention cleanup
+	// report its work directly to the new file without re-entering Logger.write.
 	oldFile := l.file
 	l.file = file
 	l.currentDate = date
