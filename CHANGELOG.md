@@ -2,6 +2,7 @@
 
 ## Unreleased (target: 0.0.1)
 
+- Added progressive-disclosure guidance for organizing source files around their public behavior.
 - Added detailed lifecycle decision logging for monitor start, stop, worker shutdown, and log retention cleanup.
 
 - Scaffolded the initial Go CLI project structure.

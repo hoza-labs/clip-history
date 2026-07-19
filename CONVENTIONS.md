@@ -17,6 +17,7 @@ Shared coding and design rules for this repository live here. Keep this file as 
 - Package comments should summarize the package protocol, including required call sequencing, important conditions, and private/specialized entrypoints such as hidden CLI commands or worker methods.
 - Constructor comments should state required dependencies and lifecycle protocols; if a returned value owns resources, tell callers to call `Close`, usually with `defer value.Close()` immediately after checking the error.
 - Prefer small files, small functions, and public-interface tests.
+- Organize source files for progressive disclosure: present primary types, constructors, and public behavior before internal orchestration and low-level helpers. Keep supporting declarations close to the behavior they explain, and deviate when dependency-first ordering or grouping materially improves clarity.
 - Prefer independent unit tests with controlled dependencies; avoid integration tests unless cross-package or cross-module behavior is the explicit target.
 - Prefer functions to log significant decisions, branches, and return paths so runtime behavior can be reconstructed during debugging.
 - Prefer standard library solutions over third-party dependencies unless there is strong justification.
