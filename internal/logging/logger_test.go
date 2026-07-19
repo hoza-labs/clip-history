@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -144,8 +145,8 @@ func TestNewLoggerRejectsNegativeRetention(t *testing.T) {
 	}
 }
 
-// TestRotateTreatsCleanupFailureAsWarning verifies housekeeping does not prevent logging.
-func TestRotateTreatsCleanupFailureAsWarning(t *testing.T) {
+// TestEnsureLogFileOpenTreatsCleanupFailureAsWarning verifies housekeeping does not prevent logging.
+func TestEnsureLogFileOpenTreatsCleanupFailureAsWarning(t *testing.T) {
 	dir := t.TempDir()
 	currentTime := time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local)
 	freezeTime(t, currentTime)
@@ -157,8 +158,8 @@ func TestRotateTreatsCleanupFailureAsWarning(t *testing.T) {
 	}
 	defer logger.Close()
 
-	if err := logger.rotate(currentTime); err != nil {
-		t.Fatalf("rotate returned cleanup error: %v", err)
+	if err := logger.ensureLogFileOpen(currentTime); err != nil {
+		t.Fatalf("ensureLogFileOpen returned cleanup error: %v", err)
 	}
 	logger.Info("still available")
 
@@ -171,6 +172,30 @@ func TestRotateTreatsCleanupFailureAsWarning(t *testing.T) {
 	}
 	if !strings.Contains(string(data), "still available") {
 		t.Fatalf("log = %q, want subsequent entry", string(data))
+	}
+}
+
+// TestLoggerWritesToStandardErrorWhenLogFileCannotOpen verifies writes do not use a stale or nil file.
+func TestLoggerWritesToStandardErrorWhenLogFileCannotOpen(t *testing.T) {
+	currentTime := time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local)
+	freezeTime(t, currentTime)
+	var output bytes.Buffer
+	oldStandardError := standardError
+	standardError = &output
+	t.Cleanup(func() { standardError = oldStandardError })
+
+	logger := &Logger{
+		dir:      filepath.Join(t.TempDir(), "missing", "logs"),
+		location: time.Local,
+		title:    "test",
+	}
+	logger.Error("not lost")
+
+	if !strings.Contains(output.String(), "write log entry: open log file:") {
+		t.Fatalf("stderr = %q, want open failure", output.String())
+	}
+	if !strings.Contains(output.String(), "not lost") {
+		t.Fatalf("stderr = %q, want original entry", output.String())
 	}
 }
 

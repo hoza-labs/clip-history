@@ -7,6 +7,7 @@ package logging
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -47,7 +48,7 @@ func NewLogger(dir string, retentionDays int, timezone string, title string) (*L
 		location:      location,
 		title:         title,
 	}
-	if err := logger.rotate(now().In(location)); err != nil {
+	if err := logger.ensureLogFileOpen(now().In(location)); err != nil {
 		return nil, err
 	}
 
@@ -86,7 +87,8 @@ func (l *Logger) Close() error {
 	return err
 }
 
-// write appends message at level, rotating the log file when the local date changes.
+// write appends message at level, appending to the log file appropriate for the current time
+// and incidentally causing a "best effort" at removing old logs.
 func (l *Logger) write(level level, message string) {
 	if l == nil {
 		return
@@ -103,14 +105,16 @@ func (l *Logger) write(level level, message string) {
 	if l.closed {
 		return
 	}
-	if err := l.rotate(currentTime); err != nil {
-		_, _ = l.file.WriteString(l.formatLogLine(currentTime, levelError, fmt.Sprintf("rotate log file: %v", err)))
+	if err := l.ensureLogFileOpen(currentTime); err != nil {
+		_, _ = io.WriteString(standardError, l.formatLogLine(currentTime, levelError, fmt.Sprintf("write log entry: %v", err)))
+		_, _ = io.WriteString(standardError, line)
+		return
 	}
 	_, _ = l.file.WriteString(line)
 }
 
-// rotate opens the log file for at's local day when it differs from the current day.
-func (l *Logger) rotate(at time.Time) error {
+// ensureLogFileOpen opens the log file for at's local day and best-effort removes expired logs.
+func (l *Logger) ensureLogFileOpen(at time.Time) error {
 	day := beginningOfDay(at.In(l.location))
 	if day.Equal(l.currentDay) {
 		return nil
@@ -250,3 +254,6 @@ func beginningOfDay(t time.Time) time.Time {
 
 // now is replaceable in tests and returns the current time.
 var now = time.Now
+
+// standardError receives entries that cannot be written to their intended log file.
+var standardError io.Writer = os.Stderr
