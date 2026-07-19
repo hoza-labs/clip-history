@@ -242,8 +242,3 @@ func assertMissing(t *testing.T, path string) {
 		t.Fatalf("expected %s to be removed, stat err = %v", filepath.Base(path), err)
 	}
 }
-
-// logFileName returns the managed log file name for t's date.
-func logFileName(t time.Time) string {
-	return "clip-history-" + t.Format(logFileDateLayout) + ".log"
-}

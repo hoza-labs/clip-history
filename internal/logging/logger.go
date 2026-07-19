@@ -19,7 +19,7 @@ type Logger struct {
 	dir           string
 	retentionDays int
 	file          *os.File
-	currentDate   string
+	currentDay    time.Time
 	location      *time.Location
 	title         string
 	mu            sync.Mutex
@@ -44,7 +44,7 @@ func NewLogger(dir string, retentionDays int, timezone string, title string) (*L
 		location:      location,
 		title:         title,
 	}
-	if err := logger.rotate(now().In(location).Format(logFileDateLayout)); err != nil {
+	if err := logger.rotate(now().In(location)); err != nil {
 		return nil, err
 	}
 
@@ -93,7 +93,6 @@ func (l *Logger) write(level level, message string) {
 		location = time.Local
 	}
 	currentTime := now().In(location)
-	date := currentTime.Format(logFileDateLayout)
 	line := l.formatLogLine(currentTime, level, message)
 
 	l.mu.Lock()
@@ -101,36 +100,39 @@ func (l *Logger) write(level level, message string) {
 	if l.closed {
 		return
 	}
-	if date != l.currentDate {
-		if err := l.rotate(date); err != nil {
-			_, _ = l.file.WriteString(l.formatLogLine(currentTime, levelError, fmt.Sprintf("rotate log file: %v", err)))
-		}
+	if err := l.rotate(currentTime); err != nil {
+		_, _ = l.file.WriteString(l.formatLogLine(currentTime, levelError, fmt.Sprintf("rotate log file: %v", err)))
 	}
 	_, _ = l.file.WriteString(line)
 }
 
-// rotate opens the log file for date and closes the previous file if one was open.
-func (l *Logger) rotate(date string) error {
-	path := filepath.Join(l.dir, fmt.Sprintf("clip-history-%s.log", date))
+// rotate opens the log file for at's local day when it differs from the current day.
+func (l *Logger) rotate(at time.Time) error {
+	day := beginningOfDay(at.In(l.location))
+	if day.Equal(l.currentDay) {
+		return nil
+	}
+
+	path := filepath.Join(l.dir, logFileName(day))
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
 	if err != nil {
 		return fmt.Errorf("open log file: %w", err)
 	}
 
-	// Keep the previous file so a cleanup failure can restore it, or close it
-	// after rotation succeeds. The local logInfo callback lets retention cleanup
-	// report its work directly to the new file without re-entering Logger.write.
-	oldFile := l.file
-	l.file = file
-	l.currentDate = date
+	// Keep the previous file active until cleanup succeeds. The local logInfo
+	// callback lets retention cleanup report its work directly to the candidate
+	// file without re-entering Logger.write.
 	logInfo := func(message string) {
-		_, _ = l.file.WriteString(l.formatLogLine(now(), levelInfo, message))
+		_, _ = file.WriteString(l.formatLogLine(now(), levelInfo, message))
 	}
 	if err := removeExpiredLogs(l.dir, l.retentionDays, l.location, logInfo); err != nil {
-		l.file = oldFile
 		_ = file.Close()
 		return err
 	}
+
+	oldFile := l.file
+	l.file = file
+	l.currentDay = day
 	if oldFile != nil {
 		_ = oldFile.Close()
 	}
@@ -160,11 +162,22 @@ func (l *Logger) formatLogLine(at time.Time, level level, message string) string
 		at.In(l.location).Format(logTimestampLayout), os.Getpid(), l.title, level, message)
 }
 
-// logFileDateLayout formats the date embedded in log file names.
-const logFileDateLayout = "2006-01-02"
+const (
+	// logFileDateLayout formats the date embedded in log file names.
+	logFileDateLayout = "2006-01-02"
+	// logFilePrefix identifies log files managed by this package.
+	logFilePrefix = "clip-history-"
+	// logFileSuffix identifies the file type used for managed logs.
+	logFileSuffix = ".log"
+)
 
 // logFilePattern matches managed clip-history log files and captures their date.
-var logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
+var logFilePattern = regexp.MustCompile(`^` + regexp.QuoteMeta(logFilePrefix) + `(\d{4}-\d{2}-\d{2})` + regexp.QuoteMeta(logFileSuffix) + `$`)
+
+// logFileName returns the managed log file name for at's date.
+func logFileName(at time.Time) string {
+	return logFilePrefix + at.Format(logFileDateLayout) + logFileSuffix
+}
 
 // removeExpiredLogs deletes managed logs older than retentionDays in location and reports its decisions through logInfo.
 func removeExpiredLogs(dir string, retentionDays int, location *time.Location, logInfo func(string)) error {
