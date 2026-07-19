@@ -12,59 +12,6 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
-// stubLogger satisfies commandLogger without recording messages.
-type stubLogger struct{}
-
-// stubOutput captures printed command output.
-type stubOutput struct {
-	buffer bytes.Buffer
-}
-
-// stubMonitorController controls monitor command outcomes in tests.
-type stubMonitorController struct {
-	started bool
-	stopped bool
-	status  monitor.Status
-	err     error
-}
-
-// Info ignores informational messages.
-func (stubLogger) Info(string) {}
-
-// Error ignores error messages.
-func (stubLogger) Error(string) {}
-
-// Debug ignores debug messages.
-func (stubLogger) Debug(string) {}
-
-// Close returns nil for compatibility with closeable logger tests.
-func (stubLogger) Close() error { return nil }
-
-// Printf records formatted output.
-func (s *stubOutput) Printf(format string, args ...any) {
-	s.buffer.WriteString(fmt.Sprintf(format, args...))
-}
-
-// Println records line output.
-func (s *stubOutput) Println(args ...any) {
-	s.buffer.WriteString(fmt.Sprintln(args...))
-}
-
-// StartMonitor returns the configured start result.
-func (s stubMonitorController) StartMonitor() (bool, error) {
-	return s.started, s.err
-}
-
-// StopMonitor returns the configured stop result.
-func (s stubMonitorController) StopMonitor() (bool, error) {
-	return s.stopped, s.err
-}
-
-// GetMonitorStatus returns the configured monitor status.
-func (s stubMonitorController) GetMonitorStatus() (monitor.Status, error) {
-	return s.status, s.err
-}
-
 // TestRunStartCommandPrintsStarted verifies start reports a newly started monitor.
 func TestRunStartCommandPrintsStarted(t *testing.T) {
 	cfg := config.Default(t.TempDir())
@@ -182,4 +129,57 @@ func TestRunStartCommandReturnsControllerConstructorError(t *testing.T) {
 	if err == nil || err.Error() != "bad constructor" {
 		t.Fatalf("runStartCommand() error = %v, want bad constructor", err)
 	}
+}
+
+// stubLogger satisfies commandLogger without recording messages.
+type stubLogger struct{}
+
+// Info ignores informational messages.
+func (stubLogger) Info(string) {}
+
+// Error ignores error messages.
+func (stubLogger) Error(string) {}
+
+// Debug ignores debug messages.
+func (stubLogger) Debug(string) {}
+
+// Close returns nil for compatibility with closeable logger tests.
+func (stubLogger) Close() error { return nil }
+
+// stubOutput captures printed command output.
+type stubOutput struct {
+	buffer bytes.Buffer
+}
+
+// Printf records formatted output.
+func (s *stubOutput) Printf(format string, args ...any) {
+	s.buffer.WriteString(fmt.Sprintf(format, args...))
+}
+
+// Println records line output.
+func (s *stubOutput) Println(args ...any) {
+	s.buffer.WriteString(fmt.Sprintln(args...))
+}
+
+// stubMonitorController controls monitor command outcomes in tests.
+type stubMonitorController struct {
+	started bool
+	stopped bool
+	status  monitor.Status
+	err     error
+}
+
+// StartMonitor returns the configured start result.
+func (s stubMonitorController) StartMonitor() (bool, error) {
+	return s.started, s.err
+}
+
+// StopMonitor returns the configured stop result.
+func (s stubMonitorController) StopMonitor() (bool, error) {
+	return s.stopped, s.err
+}
+
+// GetMonitorStatus returns the configured monitor status.
+func (s stubMonitorController) GetMonitorStatus() (monitor.Status, error) {
+	return s.status, s.err
 }

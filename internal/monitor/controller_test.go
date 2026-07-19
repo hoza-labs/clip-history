@@ -8,16 +8,6 @@ import (
 	"time"
 )
 
-// recordingControllerLogger captures controller lifecycle messages.
-type recordingControllerLogger struct {
-	messages []string
-}
-
-// Info records message.
-func (l *recordingControllerLogger) Info(message string) {
-	l.messages = append(l.messages, message)
-}
-
 // TestControllerStartWaitsForHealthyState verifies StartMonitor waits for fresh worker state.
 func TestControllerStartWaitsForHealthyState(t *testing.T) {
 	dir := t.TempDir()
@@ -190,4 +180,14 @@ func TestNewControllerRequiresAllMinimalDependencies(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected NewController() to fail")
 	}
+}
+
+// recordingControllerLogger captures controller lifecycle messages.
+type recordingControllerLogger struct {
+	messages []string
+}
+
+// Info records message.
+func (l *recordingControllerLogger) Info(message string) {
+	l.messages = append(l.messages, message)
 }
