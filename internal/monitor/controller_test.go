@@ -121,6 +121,7 @@ func TestControllerStatusReportsStaleWorker(t *testing.T) {
 		StatePath: filepath.Join(dir, "monitor.json"),
 		StopPath:  filepath.Join(dir, "monitor.stop"),
 		Now:       func() time.Time { return now },
+		Logger:    &recordingControllerLogger{},
 	})
 	if err != nil {
 		t.Fatalf("NewController() error = %v", err)
@@ -160,6 +161,7 @@ func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 		StopPath:  "monitor.stop",
 		Now:       func() time.Time { return time.Unix(0, 0) },
 		Sleep:     func(time.Duration) {},
+		Logger:    &recordingControllerLogger{},
 	})
 	if err != nil {
 		t.Fatalf("NewController() error = %v", err)
@@ -174,11 +176,46 @@ func TestControllerStartReturnsErrorWhenSpawnerFails(t *testing.T) {
 	}
 }
 
-// TestNewControllerRequiresAllMinimalDependencies verifies required controller paths are enforced.
+// TestNewControllerRequiresAllMinimalDependencies verifies required controller dependencies are enforced.
 func TestNewControllerRequiresAllMinimalDependencies(t *testing.T) {
-	_, err := NewController(ControllerConfig{})
-	if err == nil {
-		t.Fatal("expected NewController() to fail")
+	tests := []struct {
+		name    string
+		cfg     ControllerConfig
+		wantErr string
+	}{
+		{
+			name: "state path",
+			cfg: ControllerConfig{
+				StopPath: "monitor.stop",
+				Logger:   &recordingControllerLogger{},
+			},
+			wantErr: "state path is required",
+		},
+		{
+			name: "stop path",
+			cfg: ControllerConfig{
+				StatePath: "monitor.json",
+				Logger:    &recordingControllerLogger{},
+			},
+			wantErr: "stop path is required",
+		},
+		{
+			name: "logger",
+			cfg: ControllerConfig{
+				StatePath: "monitor.json",
+				StopPath:  "monitor.stop",
+			},
+			wantErr: "logger is required",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := NewController(test.cfg)
+			if err == nil || err.Error() != test.wantErr {
+				t.Fatalf("NewController() error = %v, want %q", err, test.wantErr)
+			}
+		})
 	}
 }
 

@@ -20,7 +20,7 @@ type Status struct {
 	Stale   bool
 }
 
-// ControllerConfig provides required file paths and optional timing/test hooks for Controller.
+// ControllerConfig provides the required file paths and logger plus optional timing/test hooks for Controller.
 type ControllerConfig struct {
 	StatePath        string
 	StopPath         string
@@ -44,13 +44,16 @@ type Controller struct {
 	cfg ControllerConfig
 }
 
-// NewController validates cfg and returns a Controller; StatePath and StopPath are required.
+// NewController validates cfg and returns a Controller; StatePath, StopPath, and Logger are required.
 func NewController(cfg ControllerConfig) (Controller, error) {
 	if cfg.StatePath == "" {
 		return Controller{}, errors.New("state path is required")
 	}
 	if cfg.StopPath == "" {
 		return Controller{}, errors.New("stop path is required")
+	}
+	if cfg.Logger == nil {
+		return Controller{}, errors.New("logger is required")
 	}
 	if cfg.HeartbeatTimeout == 0 {
 		cfg.HeartbeatTimeout = DefaultHeartbeatTimeout
@@ -70,10 +73,6 @@ func NewController(cfg ControllerConfig) (Controller, error) {
 	if cfg.Sleep == nil {
 		cfg.Sleep = time.Sleep
 	}
-	if cfg.Logger == nil {
-		cfg.Logger = discardControllerLogger{}
-	}
-
 	return Controller{cfg: cfg}, nil
 }
 
@@ -183,9 +182,3 @@ func (mc Controller) GetMonitorStatus() (Status, error) {
 		Stale: true,
 	}, nil
 }
-
-// discardControllerLogger ignores controller messages when no logger is configured.
-type discardControllerLogger struct{}
-
-// Info ignores message.
-func (discardControllerLogger) Info(string) {}
