@@ -7,31 +7,6 @@ import (
 	"github.com/hoza-labs/clip-history/internal/monitor"
 )
 
-// monitorController is the lifecycle behavior required by monitor CLI commands.
-type monitorController interface {
-	// StartMonitor starts the worker and reports whether a new process was started.
-	StartMonitor() (bool, error)
-	// StopMonitor stops the worker and reports whether a running process was found.
-	StopMonitor() (bool, error)
-	// GetMonitorStatus returns the current worker status.
-	GetMonitorStatus() (monitor.Status, error)
-}
-
-// newMonitorController builds the controller used by start, stop, and status commands.
-var newMonitorController = func(logger commandLogger, cfg config.Config) (monitorController, error) {
-	controller, err := monitor.NewController(monitor.ControllerConfig{
-		StatePath: cfg.MonitorStatePath,
-		StopPath:  cfg.MonitorStopPath,
-		Logger:    logger,
-	})
-	return controller, err
-}
-
-// runMonitorWorker runs the hidden monitor worker process until it is stopped or errors.
-var runMonitorWorker = func(logger commandLogger, cfg config.Config) error {
-	return monitor.RunWorker(logger, cfg.MonitorStatePath, cfg.MonitorStopPath)
-}
-
 // runStartCommand starts background monitoring and reports whether it was already running.
 func runStartCommand(logger commandLogger, output commandOutput, cfg config.Config) error {
 	logger.Info("running start command")
@@ -108,4 +83,29 @@ func runStatusCommand(logger commandLogger, output commandOutput, cfg config.Con
 func runMonitorCommand(logger commandLogger, cfg config.Config) error {
 	logger.Info("running monitor command")
 	return runMonitorWorker(logger, cfg)
+}
+
+// newMonitorController builds the controller used by start, stop, and status commands.
+var newMonitorController = func(logger commandLogger, cfg config.Config) (monitorController, error) {
+	controller, err := monitor.NewController(monitor.ControllerConfig{
+		StatePath: cfg.MonitorStatePath,
+		StopPath:  cfg.MonitorStopPath,
+		Logger:    logger,
+	})
+	return controller, err
+}
+
+// monitorController is the lifecycle behavior required by monitor CLI commands.
+type monitorController interface {
+	// StartMonitor starts the worker and reports whether a new process was started.
+	StartMonitor() (bool, error)
+	// StopMonitor stops the worker and reports whether a running process was found.
+	StopMonitor() (bool, error)
+	// GetMonitorStatus returns the current worker status.
+	GetMonitorStatus() (monitor.Status, error)
+}
+
+// runMonitorWorker runs the hidden monitor worker process until it is stopped or errors.
+var runMonitorWorker = func(logger commandLogger, cfg config.Config) error {
+	return monitor.RunWorker(logger, cfg.MonitorStatePath, cfg.MonitorStopPath)
 }
