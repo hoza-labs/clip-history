@@ -31,6 +31,9 @@ func NewLogger(dir string, retentionDays int, timezone string, title string) (*L
 	if dir == "" {
 		return nil, fmt.Errorf("log directory is required")
 	}
+	if retentionDays < 0 {
+		return nil, fmt.Errorf("log retention days must be non-negative")
+	}
 	location, err := resolveLocation(timezone)
 	if err != nil {
 		return nil, err
@@ -119,22 +122,21 @@ func (l *Logger) rotate(at time.Time) error {
 		return fmt.Errorf("open log file: %w", err)
 	}
 
-	// Keep the previous file active until cleanup succeeds. The local logInfo
-	// callback lets retention cleanup report its work directly to the candidate
-	// file without re-entering Logger.write.
-	logInfo := func(message string) {
-		_, _ = file.WriteString(l.formatLogLine(now(), levelInfo, message))
-	}
-	if err := removeExpiredLogs(l.dir, l.retentionDays, l.location, logInfo); err != nil {
-		_ = file.Close()
-		return err
-	}
-
+	// Close the previous file before cleanup so it can be removed when the logger
+	// has been idle past the retention period.
 	oldFile := l.file
 	l.file = file
 	l.currentDay = day
 	if oldFile != nil {
 		_ = oldFile.Close()
+	}
+
+	// The local callback reports cleanup work without re-entering Logger.write.
+	logInfo := func(message string) {
+		_, _ = file.WriteString(l.formatLogLine(now(), levelInfo, message))
+	}
+	if err := removeExpiredLogs(l.dir, l.retentionDays, l.location, logInfo); err != nil {
+		_, _ = file.WriteString(l.formatLogLine(now(), levelWarn, fmt.Sprintf("log retention cleanup: %v", err)))
 	}
 
 	return nil
@@ -148,6 +150,8 @@ const (
 	levelInfo level = "INFO"
 	// levelError identifies an error entry.
 	levelError level = "ERROR"
+	// levelWarn identifies a warning entry.
+	levelWarn level = "WARN"
 	// levelDebug identifies a diagnostic entry.
 	levelDebug level = "DEBUG"
 )

@@ -144,6 +144,36 @@ func TestNewLoggerRejectsNegativeRetention(t *testing.T) {
 	}
 }
 
+// TestRotateTreatsCleanupFailureAsWarning verifies housekeeping does not prevent logging.
+func TestRotateTreatsCleanupFailureAsWarning(t *testing.T) {
+	dir := t.TempDir()
+	currentTime := time.Date(2026, 7, 6, 12, 0, 0, 0, time.Local)
+	freezeTime(t, currentTime)
+	logger := &Logger{
+		dir:           dir,
+		retentionDays: -1,
+		location:      time.Local,
+		title:         "test",
+	}
+	defer logger.Close()
+
+	if err := logger.rotate(currentTime); err != nil {
+		t.Fatalf("rotate returned cleanup error: %v", err)
+	}
+	logger.Info("still available")
+
+	data, err := os.ReadFile(filepath.Join(dir, logFileName(currentTime)))
+	if err != nil {
+		t.Fatalf("read log file: %v", err)
+	}
+	if !strings.Contains(string(data), "[WARN ] log retention cleanup: log retention days must be non-negative") {
+		t.Fatalf("log = %q, want cleanup warning", string(data))
+	}
+	if !strings.Contains(string(data), "still available") {
+		t.Fatalf("log = %q, want subsequent entry", string(data))
+	}
+}
+
 // TestLoggerUsesConfiguredTimezoneForFileAndEntries verifies time zone affects names and entries.
 func TestLoggerUsesConfiguredTimezoneForFileAndEntries(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "logs")
@@ -217,6 +247,35 @@ func TestLoggerRotatesFilesAndRunsRetentionWhenDateChanges(t *testing.T) {
 		t.Fatalf("rotated log = %q, want after midnight entry", string(afterData))
 	}
 	assertMissing(t, filepath.Join(dir, expiredLog))
+}
+
+// TestLoggerRotationRemovesExpiredOpenLog verifies cleanup can remove the previously active log.
+func TestLoggerRotationRemovesExpiredOpenLog(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "logs")
+	currentTime := time.Date(2026, 7, 1, 12, 0, 0, 0, time.Local)
+	oldNow := now
+	now = func() time.Time { return currentTime }
+	t.Cleanup(func() { now = oldNow })
+
+	logger, err := NewLogger(dir, 2, "local", "monitor")
+	if err != nil {
+		t.Fatalf("NewLogger returned error: %v", err)
+	}
+	defer logger.Close()
+
+	logger.Info("old entry")
+	expiredLog := filepath.Join(dir, logFileName(currentTime))
+	currentTime = currentTime.AddDate(0, 0, 3)
+	logger.Info("new entry")
+
+	assertMissing(t, expiredLog)
+	data, err := os.ReadFile(filepath.Join(dir, logFileName(currentTime)))
+	if err != nil {
+		t.Fatalf("read current log: %v", err)
+	}
+	if !strings.Contains(string(data), "new entry") {
+		t.Fatalf("current log = %q, want new entry", string(data))
+	}
 }
 
 // freezeTime replaces now with value until the test cleanup runs.
