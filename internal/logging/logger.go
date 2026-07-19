@@ -20,6 +20,18 @@ const logFileDateLayout = "2006-01-02"
 // logTimestampLayout formats timestamps written at the start of each log entry.
 const logTimestampLayout = "2006-01-02T15:04:05.000Z07:00"
 
+// Level identifies the severity of a log entry.
+type Level string
+
+const (
+	// levelInfo identifies an informational entry.
+	levelInfo Level = "INFO"
+	// levelError identifies an error entry.
+	levelError Level = "ERROR"
+	// levelDebug identifies a diagnostic entry.
+	levelDebug Level = "DEBUG"
+)
+
 var (
 	// logFilePattern matches managed clip-history log files and captures their date.
 	logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
@@ -129,19 +141,26 @@ func beginningOfDay(t time.Time) time.Time {
 	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
 }
 
+// formatLogLine returns one consistently formatted entry using l's title and location.
+func (l *Logger) formatLogLine(at time.Time, level Level, message string) string {
+	return fmt.Sprintf(
+		"%s [%7d] [%-10s] [%-5s] %s\n",
+		at.In(l.location).Format(logTimestampLayout), os.Getpid(), l.title, level, message)
+}
+
 // Info writes message at INFO level.
 func (l *Logger) Info(message string) {
-	l.write("INFO", message)
+	l.write(levelInfo, message)
 }
 
 // Error writes message at ERROR level.
 func (l *Logger) Error(message string) {
-	l.write("ERROR", message)
+	l.write(levelError, message)
 }
 
 // Debug writes message at DEBUG level.
 func (l *Logger) Debug(message string) {
-	l.write("DEBUG", message)
+	l.write(levelDebug, message)
 }
 
 // Close releases the current log file and returns any close error.
@@ -162,7 +181,7 @@ func (l *Logger) Close() error {
 }
 
 // write appends message at level, rotating the log file when the local date changes.
-func (l *Logger) write(level, message string) {
+func (l *Logger) write(level Level, message string) {
 	if l == nil {
 		return
 	}
@@ -171,9 +190,8 @@ func (l *Logger) write(level, message string) {
 		location = time.Local
 	}
 	currentTime := now().In(location)
-	timestamp := currentTime.Format(logTimestampLayout)
 	date := currentTime.Format(logFileDateLayout)
-	line := fmt.Sprintf("%s [%7d] [%-10s] [%-5s] %s\n", timestamp, os.Getpid(), l.title, level, message)
+	line := l.formatLogLine(currentTime, level, message)
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -182,7 +200,7 @@ func (l *Logger) write(level, message string) {
 	}
 	if date != l.currentDate {
 		if err := l.rotate(date); err != nil {
-			_, _ = l.file.WriteString(fmt.Sprintf("%s [%7d] [%-10s] [ERROR] rotate log file: %v\n", timestamp, os.Getpid(), l.title, err))
+			_, _ = l.file.WriteString(l.formatLogLine(currentTime, levelError, fmt.Sprintf("rotate log file: %v", err)))
 		}
 	}
 	_, _ = l.file.WriteString(line)
@@ -203,8 +221,7 @@ func (l *Logger) rotate(date string) error {
 	l.file = file
 	l.currentDate = date
 	logInfo := func(message string) {
-		currentTime := now().In(l.location)
-		_, _ = l.file.WriteString(fmt.Sprintf("%s [%7d] [%-10s] [INFO ] %s\n", currentTime.Format(logTimestampLayout), os.Getpid(), l.title, message))
+		_, _ = l.file.WriteString(l.formatLogLine(now(), levelInfo, message))
 	}
 	if err := removeExpiredLogs(l.dir, l.retentionDays, l.location, logInfo); err != nil {
 		l.file = oldFile
