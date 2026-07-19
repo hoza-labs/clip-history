@@ -44,12 +44,6 @@ type Controller struct {
 	cfg ControllerConfig
 }
 
-// discardControllerLogger ignores controller messages when no logger is configured.
-type discardControllerLogger struct{}
-
-// Info ignores message.
-func (discardControllerLogger) Info(string) {}
-
 // NewController validates cfg and returns a Controller; StatePath and StopPath are required.
 func NewController(cfg ControllerConfig) (Controller, error) {
 	if cfg.StatePath == "" {
@@ -189,3 +183,9 @@ func (mc Controller) GetMonitorStatus() (Status, error) {
 		Stale: true,
 	}, nil
 }
+
+// discardControllerLogger ignores controller messages when no logger is configured.
+type discardControllerLogger struct{}
+
+// Info ignores message.
+func (discardControllerLogger) Info(string) {}
