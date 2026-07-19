@@ -11,9 +11,6 @@ import (
 	"strings"
 )
 
-// buildVersion is injected by release builds with -ldflags; an empty value means development mode.
-var buildVersion string
-
 // Current returns the injected release version or the VERSION file value with an "-rc" suffix.
 func Current() string {
 	if value := strings.TrimSpace(buildVersion); value != "" {
@@ -53,3 +50,6 @@ func findVersionFile() (string, error) {
 		dir = parent
 	}
 }
+
+// buildVersion is injected by release builds with -ldflags; an empty value means development mode.
+var buildVersion string

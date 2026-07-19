@@ -14,16 +14,6 @@ import (
 	"github.com/hoza-labs/clip-history/internal/logging"
 )
 
-// commandLogger is the logging behavior required by command handlers.
-type commandLogger interface {
-	// Info records an informational message.
-	Info(string)
-	// Error records an error message.
-	Error(string)
-	// Debug records a debug message.
-	Debug(string)
-}
-
 // Execute runs the command named in os.Args and returns any command or setup error.
 func Execute() error {
 	if len(os.Args) < 2 {
@@ -100,4 +90,14 @@ func printRootHelp() error {
 	fmt.Println("  status      Show whether clipboard monitoring is running")
 	fmt.Println("  version     Show the current target release version")
 	return nil
+}
+
+// commandLogger is the logging behavior required by command handlers.
+type commandLogger interface {
+	// Info records an informational message.
+	Info(string)
+	// Error records an error message.
+	Error(string)
+	// Debug records a debug message.
+	Debug(string)
 }

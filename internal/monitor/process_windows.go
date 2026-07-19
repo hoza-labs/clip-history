@@ -8,9 +8,6 @@ import (
 	"syscall"
 )
 
-// createNoWindow hides the spawned worker console window on Windows.
-const createNoWindow = 0x08000000
-
 // startMonitorProcess starts a hidden child process running the private monitor command.
 var startMonitorProcess = func() error {
 	exe, err := os.Executable()
@@ -49,3 +46,6 @@ var killMonitorProcess = func(pid int) error {
 
 	return process.Kill()
 }
+
+// createNoWindow hides the spawned worker console window on Windows.
+const createNoWindow = 0x08000000
