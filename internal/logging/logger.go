@@ -14,31 +14,6 @@ import (
 	"time"
 )
 
-// logFileDateLayout formats the date embedded in log file names.
-const logFileDateLayout = "2006-01-02"
-
-// logTimestampLayout formats timestamps written at the start of each log entry.
-const logTimestampLayout = "2006-01-02T15:04:05.000Z07:00"
-
-// Level identifies the severity of a log entry.
-type Level string
-
-const (
-	// levelInfo identifies an informational entry.
-	levelInfo Level = "INFO"
-	// levelError identifies an error entry.
-	levelError Level = "ERROR"
-	// levelDebug identifies a diagnostic entry.
-	levelDebug Level = "DEBUG"
-)
-
-var (
-	// logFilePattern matches managed clip-history log files and captures their date.
-	logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
-	// now is replaceable in tests and returns the current time.
-	now = time.Now
-)
-
 // Logger writes timestamped entries to a daily log file.
 type Logger struct {
 	dir           string
@@ -76,78 +51,6 @@ func NewLogger(dir string, retentionDays int, timezone string, title string) (*L
 	return logger, nil
 }
 
-// resolveLocation returns the configured time zone, treating "" and "local" as time.Local.
-func resolveLocation(timezone string) (*time.Location, error) {
-	if timezone == "" || timezone == "local" {
-		return time.Local, nil
-	}
-
-	location, err := time.LoadLocation(timezone)
-	if err != nil {
-		return nil, fmt.Errorf("load log timezone %q: %w", timezone, err)
-	}
-	return location, nil
-}
-
-// removeExpiredLogs deletes managed logs older than retentionDays in location and reports its decisions through logInfo.
-func removeExpiredLogs(dir string, retentionDays int, location *time.Location, logInfo func(string)) error {
-	logInfo("log retention cleanup triggered")
-	if retentionDays < 0 {
-		return fmt.Errorf("log retention days must be non-negative")
-	}
-
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		return fmt.Errorf("read log dir: %w", err)
-	}
-
-	cutoff := beginningOfDay(now().In(location).AddDate(0, 0, -retentionDays))
-	removed := 0
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
-		matches := logFilePattern.FindStringSubmatch(entry.Name())
-		if matches == nil {
-			continue
-		}
-
-		logDate, err := time.ParseInLocation(logFileDateLayout, matches[1], location)
-		if err != nil {
-			continue
-		}
-		if !logDate.Before(cutoff) {
-			continue
-		}
-		if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil {
-			return fmt.Errorf("remove expired log %s: %w", entry.Name(), err)
-		}
-		removed++
-		logInfo(fmt.Sprintf("removed expired log %s", entry.Name()))
-	}
-	if removed == 0 {
-		logInfo("log retention cleanup complete; no expired logs found")
-	} else {
-		logInfo(fmt.Sprintf("log retention cleanup complete; removed %d expired log(s)", removed))
-	}
-
-	return nil
-}
-
-// beginningOfDay returns t truncated to midnight in t's location.
-func beginningOfDay(t time.Time) time.Time {
-	year, month, day := t.Date()
-	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
-}
-
-// formatLogLine returns one consistently formatted entry using l's title and location.
-func (l *Logger) formatLogLine(at time.Time, level Level, message string) string {
-	return fmt.Sprintf(
-		"%s [%7d] [%-10s] [%-5s] %s\n",
-		at.In(l.location).Format(logTimestampLayout), os.Getpid(), l.title, level, message)
-}
-
 // Info writes message at INFO level.
 func (l *Logger) Info(message string) {
 	l.write(levelInfo, message)
@@ -181,7 +84,7 @@ func (l *Logger) Close() error {
 }
 
 // write appends message at level, rotating the log file when the local date changes.
-func (l *Logger) write(level Level, message string) {
+func (l *Logger) write(level level, message string) {
 	if l == nil {
 		return
 	}
@@ -234,3 +137,99 @@ func (l *Logger) rotate(date string) error {
 
 	return nil
 }
+
+// level identifies the severity of a log entry.
+type level string
+
+const (
+	// levelInfo identifies an informational entry.
+	levelInfo level = "INFO"
+	// levelError identifies an error entry.
+	levelError level = "ERROR"
+	// levelDebug identifies a diagnostic entry.
+	levelDebug level = "DEBUG"
+)
+
+// logTimestampLayout formats timestamps written at the start of each log entry.
+const logTimestampLayout = "2006-01-02T15:04:05.000Z07:00"
+
+// formatLogLine returns one consistently formatted entry using l's title and location.
+func (l *Logger) formatLogLine(at time.Time, level level, message string) string {
+	return fmt.Sprintf(
+		"%s [%7d] [%-10s] [%-5s] %s\n",
+		at.In(l.location).Format(logTimestampLayout), os.Getpid(), l.title, level, message)
+}
+
+// logFileDateLayout formats the date embedded in log file names.
+const logFileDateLayout = "2006-01-02"
+
+// logFilePattern matches managed clip-history log files and captures their date.
+var logFilePattern = regexp.MustCompile(`^clip-history-(\d{4}-\d{2}-\d{2})\.log$`)
+
+// removeExpiredLogs deletes managed logs older than retentionDays in location and reports its decisions through logInfo.
+func removeExpiredLogs(dir string, retentionDays int, location *time.Location, logInfo func(string)) error {
+	logInfo("log retention cleanup triggered")
+	if retentionDays < 0 {
+		return fmt.Errorf("log retention days must be non-negative")
+	}
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("read log dir: %w", err)
+	}
+
+	cutoff := beginningOfDay(now().In(location).AddDate(0, 0, -retentionDays))
+	removed := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		matches := logFilePattern.FindStringSubmatch(entry.Name())
+		if matches == nil {
+			continue
+		}
+
+		logDate, err := time.ParseInLocation(logFileDateLayout, matches[1], location)
+		if err != nil {
+			continue
+		}
+		if !logDate.Before(cutoff) {
+			continue
+		}
+		if err := os.Remove(filepath.Join(dir, entry.Name())); err != nil {
+			return fmt.Errorf("remove expired log %s: %w", entry.Name(), err)
+		}
+		removed++
+		logInfo(fmt.Sprintf("removed expired log %s", entry.Name()))
+	}
+	if removed == 0 {
+		logInfo("log retention cleanup complete; no expired logs found")
+	} else {
+		logInfo(fmt.Sprintf("log retention cleanup complete; removed %d expired log(s)", removed))
+	}
+
+	return nil
+}
+
+// resolveLocation returns the configured time zone, treating "" and "local" as time.Local.
+func resolveLocation(timezone string) (*time.Location, error) {
+	if timezone == "" || timezone == "local" {
+		return time.Local, nil
+	}
+
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		return nil, fmt.Errorf("load log timezone %q: %w", timezone, err)
+	}
+	return location, nil
+}
+
+// beginningOfDay returns t truncated to midnight in t's location.
+func beginningOfDay(t time.Time) time.Time {
+	year, month, day := t.Date()
+	return time.Date(year, month, day, 0, 0, 0, 0, t.Location())
+}
+
+// now is replaceable in tests and returns the current time.
+var now = time.Now
