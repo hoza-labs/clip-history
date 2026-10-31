@@ -9,22 +9,25 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/pelletier/go-toml/v2"
 )
 
 // Config describes all persistent paths and settings used by clip-history.
 type Config struct {
-	Path             string `toml:"path"`
-	HomeDir          string `toml:"homeDir"`
-	HistoryDir       string `toml:"historyDir"`
-	LogDir           string `toml:"logDir"`
-	RuntimeDir       string `toml:"runtimeDir"`
-	MonitorStatePath string `toml:"monitorStatePath"`
-	MonitorStopPath  string `toml:"monitorStopPath"`
-	LogRetentionDays int    `toml:"logRetentionDays"`
-	LogTimezone      string `toml:"logTimezone"`
+	Path             string `toml:"path" description:"Path to the configuration file."`
+	HomeDir          string `toml:"homeDir" description:"User home directory used as the configuration base."`
+	HistoryDir       string `toml:"historyDir" description:"Directory that holds actual clipboard items."`
+	LogDir           string `toml:"logDir" description:"Directory for log files."`
+	RuntimeDir       string `toml:"runtimeDir" description:"Directory for monitor runtime files."`
+	MonitorStatePath string `toml:"monitorStatePath" description:"Path to the monitor process state file."`
+	MonitorStopPath  string `toml:"monitorStopPath" description:"Path to the file that signals the monitor to stop."`
+	LogRetentionDays int    `toml:"logRetentionDays" description:"Number of days to retain log files."`
+	LogTimezone      string `toml:"logTimezone" description:"Time zone for log timestamps and rotation (local or an IANA name)."`
 }
 
 // Default returns a complete Config rooted under homeDir, or "." when homeDir is empty.
@@ -71,7 +74,7 @@ func Load() (Config, error) {
 			return Config{}, fmt.Errorf("decode config: %w", err)
 		}
 	} else {
-		data, err := toml.Marshal(cfg)
+		data, err := marshalWithComments(cfg)
 		if err != nil {
 			return Config{}, fmt.Errorf("encode config: %w", err)
 		}
@@ -89,6 +92,40 @@ func Load() (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// marshalWithComments encodes cfg with aligned keys, values, and field descriptions.
+func marshalWithComments(cfg Config) ([]byte, error) {
+	data, err := toml.Marshal(cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	descriptions := make(map[string]string)
+	typ := reflect.TypeOf(cfg)
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		descriptions[field.Tag.Get("toml")] = field.Tag.Get("description")
+	}
+	lines := strings.Split(string(data), "\n")
+	keyWidth, valueWidth := 0, 0
+	for _, line := range lines {
+		if key, value, ok := strings.Cut(line, " = "); ok {
+			keyWidth = max(keyWidth, utf8.RuneCountInString(key))
+			valueWidth = max(valueWidth, utf8.RuneCountInString(value))
+		}
+	}
+	for i, line := range lines {
+		key, value, ok := strings.Cut(line, " = ")
+		if !ok {
+			continue
+		}
+		lines[i] = fmt.Sprintf("%-*s = %s", keyWidth, key, value)
+		if description := descriptions[key]; description != "" {
+			lines[i] = fmt.Sprintf("%-*s = %-*s # %s", keyWidth, key, valueWidth, value, description)
+		}
+	}
+	return []byte(strings.Join(lines, "\n")), nil
 }
 
 // normalize fills empty fields in cfg with defaults derived from homeDir and returns the result.

@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -13,6 +14,7 @@ import (
 func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
+	t.Setenv("USERPROFILE", dir)
 
 	cfg, err := Load()
 	if err != nil {
@@ -42,11 +44,32 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}
-	for _, key := range []string{"homeDir =", "historyDir =", "logDir =", "runtimeDir =", "monitorStatePath =", "monitorStopPath =", "logRetentionDays =", "logTimezone ="} {
-		if !strings.Contains(string(data), key) {
-			t.Fatalf("config file missing TOML key %q:\n%s", key, string(data))
+	var decoded Config
+	if err := toml.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("decode commented config: %v", err)
+	}
+	if decoded != cfg {
+		t.Fatalf("decoded config = %+v, want %+v", decoded, cfg)
+	}
+	typ := reflect.TypeOf(cfg)
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != typ.NumField() {
+		t.Fatalf("config has %d lines, want %d", len(lines), typ.NumField())
+	}
+	for i := 0; i < typ.NumField(); i++ {
+		field := typ.Field(i)
+		description := field.Tag.Get("description")
+		if description == "" {
+			t.Fatalf("field %s has no description", field.Name)
+		}
+		if strings.TrimSpace(strings.SplitN(lines[i], "=", 2)[0]) != field.Tag.Get("toml") || !strings.HasSuffix(lines[i], " # "+description) {
+			t.Errorf("field %s missing inline description: %s", field.Name, lines[i])
 		}
 	}
+	if _, err := Load(); err != nil {
+		t.Fatalf("reload commented config: %v", err)
+	}
+
 	if filepath.Base(cfg.MonitorStatePath) != "monitor.json" {
 		t.Fatalf("unexpected monitor state file name: %s", filepath.Base(cfg.MonitorStatePath))
 	}
@@ -79,5 +102,35 @@ func TestLoadRejectsInvalidLogTimezone(t *testing.T) {
 
 	if _, err := Load(); err == nil {
 		t.Fatal("expected Load to reject invalid log timezone")
+	}
+}
+
+// TestMarshalWithCommentsAlignment verifies aligned columns preserve quoted string contents.
+func TestMarshalWithCommentsAlignment(t *testing.T) {
+	cfg := Default("home")
+	cfg.HistoryDir = "  clipboard = items # saved  "
+	cfg.LogDir = "C:\\logs\\\"quoted\""
+	cfg.RuntimeDir = "???\tfiles\nnext line"
+	data, err := marshalWithComments(cfg)
+	if err != nil {
+		t.Fatalf("encode config: %v", err)
+	}
+	var decoded Config
+	if err := toml.Unmarshal(data, &decoded); err != nil {
+		t.Fatalf("decode config: %v", err)
+	}
+	if decoded != cfg {
+		t.Fatalf("decoded config = %+v, want %+v", decoded, cfg)
+	}
+	equalsColumn, commentColumn := -1, -1
+	for _, line := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+		equals := len([]rune(line[:strings.Index(line, " = ")+1]))
+		comment := len([]rune(line[:strings.LastIndex(line, " # ")+1]))
+		if equalsColumn == -1 {
+			equalsColumn, commentColumn = equals, comment
+		}
+		if equals != equalsColumn || comment != commentColumn {
+			t.Errorf("misaligned columns in %q: got (%d, %d), want (%d, %d)", line, equals, comment, equalsColumn, commentColumn)
+		}
 	}
 }

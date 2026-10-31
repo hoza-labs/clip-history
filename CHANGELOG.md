@@ -2,6 +2,8 @@
 
 ## Unreleased (target: 0.0.1)
 
+- Added inline explanations for every setting in newly generated config.toml files, with aligned equals signs, values, and comments.
+
 - Removed unused sensitivity-filtering scaffolding and adopted a convention to keep code tied to current project needs.
 - Removed the unused sensitive-content storage setting from generated configuration and `ch config` output.
 - Changed `ch config` to display all effective configuration parameters as TOML, including defaults and normalized values, and added a convention requiring output and tests to stay current with configuration changes.
