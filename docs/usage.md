@@ -2,7 +2,7 @@
 
 ## Commands
 
-- `ch config` shows the active configuration location and directories.
+- `ch config` shows all effective configuration parameters as TOML, including paths, log retention, log time zone, and sensitive-item storage, after defaults and normalization are applied.
 - `ch start` starts background clipboard monitoring.
 - `ch stop` stops background clipboard monitoring.
 - `ch status` shows the clipboard history directory and whether monitoring is running.

@@ -20,6 +20,8 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 
 ## Local development
 
+Use `ch config` to display every effective configuration parameter as TOML, including defaults and normalized values.
+
 1. Install Go 1.22+.
 2. Run tests: `go test ./...`
 3. Build the binary: `go build ./cmd/ch`

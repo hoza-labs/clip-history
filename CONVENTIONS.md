@@ -19,6 +19,7 @@ Shared coding and design rules for this repository live here. Keep this file as 
 
 ## Project rules
 
+- Keep `ch config` output complete: every configuration parameter must show its effective runtime value after defaults, overrides, normalization, and validation. Changes to configuration options or behavior must update the command output, its regression tests, and relevant usage documentation in the same change; prefer deriving output from the configuration schema so new options appear automatically.
 - Keep the repository simple, modular, and test-driven.
 - Document every Go package, function, method, type, and package-level var or const with a brief comment; mention inputs and return values when they are not obvious from the name.
 - Package comments should summarize the package protocol, including required call sequencing, important conditions, and private/specialized entrypoints such as hidden CLI commands or worker methods.
