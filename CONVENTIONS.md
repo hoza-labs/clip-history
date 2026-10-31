@@ -10,6 +10,13 @@ Shared coding and design rules for this repository live here. Keep this file as 
 - Track significant architecture decisions as brief ADRs in `docs/adr/`.
 - ADRs should include status, date, context, decision, top alternatives, and brief rationale with pros and cons.
 
+## Change documentation
+
+- Update the `Unreleased` section of `CHANGELOG.md` in the same change as user-visible features, bug fixes, public contract changes, and meaningful operational or reliability improvements.
+- Changelog entries should describe the outcome for users or operators rather than implementation details or commit mechanics.
+- Internal refactors, test-only changes, and documentation-only clarifications do not require changelog entries unless they materially change supported behavior, architecture, or project policy.
+- During release preparation, verify the changelog against commits since the previous release; release preparation is a backstop, not the primary time to reconstruct release notes.
+
 ## Project rules
 
 - Keep the repository simple, modular, and test-driven.

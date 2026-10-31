@@ -4,6 +4,9 @@
 
 - Added progressive-disclosure guidance for organizing source files around their public behavior.
 - Added detailed lifecycle decision logging for monitor start, stop, worker shutdown, and log retention cleanup.
+- Improved logger failure handling so retention cleanup failures are warnings, unwritable entries fall back to stderr, and negative retention settings are rejected.
+- Made the monitor controller logger an explicit required dependency.
+- Made monitor state coordination concurrency-safe with serialized access, atomic file replacement, bounded Windows sharing retries, and joined heartbeat shutdown.
 
 - Scaffolded the initial Go CLI project structure.
 - Added config persistence under the user's home directory.

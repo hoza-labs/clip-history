@@ -8,13 +8,13 @@ That target version is intentionally mutable until a GitHub release object is cr
 
 - `VERSION` names the next intended release.
 - `ch version` reads `VERSION` during normal development and reports the injected build version in release binaries.
-- `CHANGELOG.md` keeps release notes under `Unreleased (target: x.y.z)` until the release is published.
+- `CHANGELOG.md` is updated alongside qualifying changes and keeps their release notes under `Unreleased (target: x.y.z)` until the release is published.
 - The version is only locked when `scripts/create-release.sh` creates the GitHub release and its `vX.Y.Z` tag.
 
 ## Prepare a release
 
 1. Confirm `VERSION` contains the target semver, for example `0.0.1`.
-2. Update `CHANGELOG.md` under `Unreleased (target: x.y.z)`.
+2. Compare commits since the previous release with `CHANGELOG.md`, then add any missing notes under `Unreleased (target: x.y.z)`.
 3. Run `go run ./cmd/ch version` to verify the CLI reports the intended version.
 4. Commit the release-ready state.
 
