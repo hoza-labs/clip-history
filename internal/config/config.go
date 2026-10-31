@@ -25,7 +25,6 @@ type Config struct {
 	MonitorStopPath  string `toml:"monitorStopPath"`
 	LogRetentionDays int    `toml:"logRetentionDays"`
 	LogTimezone      string `toml:"logTimezone"`
-	SaveSensitive    bool   `toml:"saveSensitive"`
 }
 
 // Default returns a complete Config rooted under homeDir, or "." when homeDir is empty.
@@ -45,7 +44,6 @@ func Default(homeDir string) Config {
 		MonitorStopPath:  filepath.Join(baseDir, "run", "monitor.stop"),
 		LogRetentionDays: 14,
 		LogTimezone:      "local",
-		SaveSensitive:    false,
 	}
 }
 

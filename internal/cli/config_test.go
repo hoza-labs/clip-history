@@ -23,7 +23,7 @@ func TestConfigCommandShowsEffectiveSettings(t *testing.T) {
 			t.Setenv("USERPROFILE", home)
 			want := config.Default(home)
 			if overridden {
-				data := []byte("logRetentionDays = 0\nlogTimezone = 'UTC'\nsaveSensitive = true\nhistoryDir = ''\n")
+				data := []byte("logRetentionDays = 0\nlogTimezone = 'UTC'\nhistoryDir = ''\n")
 				if err := os.MkdirAll(filepath.Dir(want.Path), 0o755); err != nil {
 					t.Fatal(err)
 				}
@@ -31,7 +31,6 @@ func TestConfigCommandShowsEffectiveSettings(t *testing.T) {
 					t.Fatal(err)
 				}
 				want.LogTimezone = "UTC"
-				want.SaveSensitive = true
 			}
 			cfg, err := config.Load()
 			if err != nil {
@@ -52,7 +51,7 @@ func TestConfigCommandShowsEffectiveSettings(t *testing.T) {
 			if err := toml.Unmarshal(output.buffer.Bytes(), &settings); err != nil {
 				t.Fatal(err)
 			}
-			// Check keys separately so omitted zero values, such as false, cannot pass.
+			// Check keys separately so omitted zero values cannot pass.
 			schema := reflect.TypeOf(cfg)
 			for i := 0; i < schema.NumField(); i++ {
 				key := schema.Field(i).Tag.Get("toml")

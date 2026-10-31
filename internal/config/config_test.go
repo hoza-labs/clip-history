@@ -42,7 +42,7 @@ func TestLoadCreatesDefaultConfigInHomeDir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read config: %v", err)
 	}
-	for _, key := range []string{"homeDir =", "historyDir =", "logDir =", "runtimeDir =", "monitorStatePath =", "monitorStopPath =", "logRetentionDays =", "logTimezone =", "saveSensitive ="} {
+	for _, key := range []string{"homeDir =", "historyDir =", "logDir =", "runtimeDir =", "monitorStatePath =", "monitorStopPath =", "logRetentionDays =", "logTimezone ="} {
 		if !strings.Contains(string(data), key) {
 			t.Fatalf("config file missing TOML key %q:\n%s", key, string(data))
 		}
