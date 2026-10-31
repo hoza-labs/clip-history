@@ -3,7 +3,7 @@
 ## Phase 1
 
 - [x] Scaffold a Go CLI project structure.
-- [x] Add config, logging, and safety modules with tests.
+- [x] Add config and logging modules with tests.
   Current progress: logs are date-stamped, rotate at midnight, cleaned up according to config retention, and written in the configured time zone.
 - [x] Add a richer CLI command tree with subcommands and help.
 - [x] Display every effective configuration parameter through `ch config` and require output coverage as configuration evolves.

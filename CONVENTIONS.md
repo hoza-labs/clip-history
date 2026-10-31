@@ -21,6 +21,7 @@ Shared coding and design rules for this repository live here. Keep this file as 
 
 - Keep `ch config` output complete: every configuration parameter must show its effective runtime value after defaults, overrides, normalization, and validation. Changes to configuration options or behavior must update the command output, its regression tests, and relevant usage documentation in the same change; prefer deriving output from the configuration schema so new options appear automatically.
 - Keep the repository simple, modular, and test-driven.
+- Generally avoid adding or keeping code without a current project need, such as features, builds, CI/CD, or testing. Remove unused scaffolding and speculative implementations; add them when needed. Keep exceptions intentional and justified.
 - Document every Go package, function, method, type, and package-level var or const with a brief comment; mention inputs and return values when they are not obvious from the name.
 - Package comments should summarize the package protocol, including required call sequencing, important conditions, and private/specialized entrypoints such as hidden CLI commands or worker methods.
 - Constructor comments should state required dependencies and lifecycle protocols; if a returned value owns resources, tell callers to call `Close`, usually with `defer value.Close()` immediately after checking the error.

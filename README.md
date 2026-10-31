@@ -6,6 +6,7 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 
 - Build a portable CLI-first application for Windows 11.
 - Keep the implementation modular and test-driven.
+- Keep code tied to current project needs; add future functionality when needed.
 - Favor simple, dependency-light code and local Docker-based builds.
 - Generate docs in the docs folder for GitHub Pages.
 
@@ -48,6 +49,5 @@ source changes when you want to test the updated monitor.
 - internal/config: home-directory config handling, including log retention and time zone settings.
 - internal/logging: date-stamped file-based logging with retention cleanup and configurable timestamps.
 - internal/monitor: monitoring controller plus Windows clipboard worker implementation.
-- internal/safety: sensitivity filtering.
 - internal/version: version resolution for development and release builds.
 - docs: user documentation for GitHub Pages.

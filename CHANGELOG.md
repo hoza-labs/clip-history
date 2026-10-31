@@ -2,6 +2,7 @@
 
 ## Unreleased (target: 0.0.1)
 
+- Removed unused sensitivity-filtering scaffolding and adopted a convention to keep code tied to current project needs.
 - Removed the unused sensitive-content storage setting from generated configuration and `ch config` output.
 - Changed `ch config` to display all effective configuration parameters as TOML, including defaults and normalized values, and added a convention requiring output and tests to stay current with configuration changes.
 - Added progressive-disclosure guidance for organizing source files around their public behavior.
