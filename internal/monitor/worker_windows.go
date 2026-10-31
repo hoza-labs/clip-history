@@ -92,9 +92,8 @@ func RunWorker(logger workerLogger, statePath, stopPath string) error {
 		return err
 	}
 
-	done := make(chan struct{})
-	defer close(done)
-	go w.heartbeat(done)
+	stopHeartbeat := startHeartbeat(w.heartbeat)
+	defer stopHeartbeat()
 
 	logger.Info("clipboard monitor started")
 
@@ -119,6 +118,22 @@ func RunWorker(logger workerLogger, statePath, stopPath string) error {
 	}
 }
 
+// startHeartbeat runs heartbeat and returns a function that signals and waits for its shutdown.
+func startHeartbeat(heartbeat func(<-chan struct{})) func() {
+	done := make(chan struct{})
+	var heartbeatWait sync.WaitGroup
+	heartbeatWait.Add(1)
+	go func() {
+		defer heartbeatWait.Done()
+		heartbeat(done)
+	}()
+
+	return func() {
+		close(done)
+		heartbeatWait.Wait()
+	}
+}
+
 // worker represents one clipboard monitor instance with its own hidden message window.
 type worker struct {
 	hwnd      uintptr
@@ -126,6 +141,19 @@ type worker struct {
 	statePath string
 	stopPath  string
 	startedAt time.Time
+	stateMu   sync.Mutex
+}
+
+// saveState serializes state writes made by the heartbeat and window callback.
+func (w *worker) saveState(now time.Time) error {
+	w.stateMu.Lock()
+	defer w.stateMu.Unlock()
+
+	return SaveState(w.statePath, State{
+		PID:         os.Getpid(),
+		StartedAt:   w.startedAt,
+		HeartbeatAt: now,
+	})
 }
 
 // heartbeat refreshes the worker state file until done is closed or the stop file appears.
@@ -144,12 +172,7 @@ func (w *worker) heartbeat(done <-chan struct{}) {
 				return
 			}
 
-			now := time.Now().UTC()
-			_ = SaveState(w.statePath, State{
-				PID:         os.Getpid(),
-				StartedAt:   w.startedAt,
-				HeartbeatAt: now,
-			})
+			_ = w.saveState(time.Now().UTC())
 		}
 	}
 }
@@ -162,12 +185,7 @@ func wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 	switch msg {
 	case wmClipboardUpdate:
 		if w != nil {
-			now := time.Now().UTC()
-			_ = SaveState(w.statePath, State{
-				PID:         os.Getpid(),
-				StartedAt:   w.startedAt,
-				HeartbeatAt: now,
-			})
+			_ = w.saveState(time.Now().UTC())
 			w.logger.Info("clipboard update detected")
 		}
 		return 0

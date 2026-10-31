@@ -6,8 +6,12 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 )
+
+// stateFileMu serializes same-process state access because Windows replacement conflicts with open readers.
+var stateFileMu sync.Mutex
 
 const (
 	// DefaultHeartbeatInterval is how often the worker refreshes its state file.
@@ -31,7 +35,10 @@ type State struct {
 
 // LoadState reads path and returns the decoded worker State.
 func LoadState(path string) (State, error) {
-	data, err := os.ReadFile(path)
+	stateFileMu.Lock()
+	defer stateFileMu.Unlock()
+
+	data, err := readStateFile(path)
 	if err != nil {
 		return State{}, err
 	}
@@ -46,6 +53,9 @@ func LoadState(path string) (State, error) {
 
 // SaveState writes state as JSON to path, creating the parent directory when needed.
 func SaveState(path string, state State) error {
+	stateFileMu.Lock()
+	defer stateFileMu.Unlock()
+
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return fmt.Errorf("create monitor state directory: %w", err)
 	}
@@ -55,8 +65,30 @@ func SaveState(path string, state State) error {
 		return fmt.Errorf("encode monitor state: %w", err)
 	}
 
-	if err := os.WriteFile(path, data, 0o644); err != nil {
-		return fmt.Errorf("write monitor state: %w", err)
+	temporary, err := os.CreateTemp(filepath.Dir(path), ".monitor-state-*")
+	if err != nil {
+		return fmt.Errorf("create temporary monitor state: %w", err)
+	}
+	temporaryPath := temporary.Name()
+	defer func() {
+		_ = temporary.Close()
+		_ = os.Remove(temporaryPath)
+	}()
+
+	if err := temporary.Chmod(0o644); err != nil {
+		return fmt.Errorf("set temporary monitor state permissions: %w", err)
+	}
+	if _, err := temporary.Write(data); err != nil {
+		return fmt.Errorf("write temporary monitor state: %w", err)
+	}
+	if err := temporary.Sync(); err != nil {
+		return fmt.Errorf("sync temporary monitor state: %w", err)
+	}
+	if err := temporary.Close(); err != nil {
+		return fmt.Errorf("close temporary monitor state: %w", err)
+	}
+	if err := replaceFile(temporaryPath, path); err != nil {
+		return fmt.Errorf("replace monitor state: %w", err)
 	}
 
 	return nil
