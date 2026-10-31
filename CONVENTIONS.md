@@ -30,3 +30,12 @@ Shared coding and design rules for this repository live here. Keep this file as 
 - Constructors should generally return values (plain structs) rather than pointers to structs, but there are exceptions for very large structs and most structs that themselves contain pointers.
 - Constructors should return pointers to structs that own mutable state, mutexes, file handles, connections, caches, or other resources that should not be copied.
 - Structs should be passed by value whenever they are intended to be immutable.
+
+## Concurrency and lifecycle
+
+- For functions and methods that access mutable state or shared resources, determine whether calls can overlap across goroutines, callbacks, or processes, and document the concurrency contract when it is not obvious.
+- Protect shared mutable state with synchronization or give it a clear single owner; do not rely on current call timing to prevent overlap.
+- Publish files atomically when readers may access them concurrently with writers. Account for platform-specific file sharing and replacement behavior, including bounded retries for transient conflicts where appropriate.
+- Give every goroutine explicit ownership and a shutdown protocol. Signal cancellation and wait for goroutines to exit before cleaning up resources they may still access.
+- Test concurrent access and lifecycle boundaries, including overlapping readers and writers and shutdown during in-progress work. Run tests with `go test -race` when the environment supports the race detector.
+- Consider both in-process concurrency and cross-process coordination when reviewing shared resources.
