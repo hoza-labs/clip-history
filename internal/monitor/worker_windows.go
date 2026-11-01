@@ -5,6 +5,7 @@ package monitor
 import (
 	"fmt"
 	"os"
+	"runtime"
 	"sync"
 	"syscall"
 	"time"
@@ -19,6 +20,10 @@ type workerLogger interface {
 
 // RunWorker creates the hidden clipboard listener and blocks until a stop signal or error occurs.
 func RunWorker(logger workerLogger, statePath, stopPath string) error {
+	// Windows message queues and clipboard access belong to the window's OS thread.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if err := RemoveFile(stopPath); err != nil {
 		return fmt.Errorf("clear stop signal: %w", err)
 	}
@@ -187,6 +192,7 @@ func wndProc(hwnd uintptr, msg uint32, wParam, lParam uintptr) uintptr {
 		if w != nil {
 			_ = w.saveState(time.Now().UTC())
 			w.logger.Info("clipboard update detected")
+			logClipboardFormats(w.logger, systemClipboard{hwnd: hwnd})
 		}
 		return 0
 	case wmClose:

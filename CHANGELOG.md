@@ -2,6 +2,10 @@
 
 ## Unreleased (target: 0.0.1)
 
+- Clipboard format enumeration now briefly retries access-denied errors when another application holds the clipboard, instead of immediately dropping the event.
+
+- Clipboard updates now log available format IDs and names, including standard and application-registered formats, plus enumeration failures. Clip contents are not yet read or saved.
+
 - Established a dependency security policy favoring the Go standard library, justified external dependencies, a seven-day update cooldown, and checks against known critical vulnerabilities; documented the initial assessment and automation plan in SECURITY-REVIEW.md. Enforcement remains planned.
 
 - Added inline explanations for every setting in newly generated config.toml files, with aligned equals signs, values, and comments.

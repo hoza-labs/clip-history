@@ -12,6 +12,6 @@
 - [x] Assess dependency supply-chain risks and document dependency retention decisions and a seven-day update cooldown in [SECURITY-REVIEW.md](SECURITY-REVIEW.md).
 - [ ] Update and pin build inputs, complete vulnerability scans, and add declarative dependency update proposals with independent release-age and vulnerability checks; retain maintainer review for trust decisions and exceptions.
 - [ ] Add clipboard capture and history storage workflows.
-  Current progress: background clipboard monitoring can be started and stopped, and clipboard copy events are logged.
+  Current progress: background clipboard monitoring can be started and stopped, and clipboard events log available format IDs and names. Reading clip contents and saving to HistoryDir remain upcoming work.
 - [ ] Add Docker-based local build workflow and lightweight CI.
 - [ ] Produce install, build, and usage documentation.
