@@ -2,6 +2,8 @@
 
 ## Unreleased (target: 0.0.1)
 
+- Established a dependency security policy favoring the Go standard library, justified external dependencies, a seven-day update cooldown, and checks against known critical vulnerabilities; documented the initial assessment and automation plan in SECURITY-REVIEW.md. Enforcement remains planned.
+
 - Added inline explanations for every setting in newly generated config.toml files, with aligned equals signs, values, and comments.
 
 - Removed unused sensitivity-filtering scaffolding and adopted a convention to keep code tied to current project needs.

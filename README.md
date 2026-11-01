@@ -15,6 +15,7 @@ clip-history (ch) is a command-line clipboard manager for Windows that preserves
 - Follow the plan in [PLAN.md](PLAN.md).
 - Track shipped work in [CHANGELOG.md](CHANGELOG.md).
 - Follow the shared project rules in [CONVENTIONS.md](CONVENTIONS.md).
+- Follow the dependency security policy and upgrade plan in [SECURITY-REVIEW.md](SECURITY-REVIEW.md): prefer standard-library code, justify external dependencies, and review updates after a seven-day cooldown with vulnerability checks.
 - Review architecture decisions in [docs/adr](docs/adr/index.md).
 - Keep agent-facing instructions current in [AGENTS.md](AGENTS.md) and [SKILLS.md](SKILLS.md).
 - Track the current target release in [VERSION](VERSION) and follow [docs/release.md](docs/release.md) when publishing.
